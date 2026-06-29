@@ -90,7 +90,7 @@ function renderTable() {
         '<th>责任人</th>' +
         '<th>待填工作量条数</th>' +
         '<th style="cursor:pointer;" onclick="toggleSort()">提出时间 ' + sortIcon + '</th>' +
-        '<th style="width:180px;">操作</th>' +
+        '<th style="width:220px;">操作</th>' +
         '</tr></thead><tbody>';
 
     names.forEach(name => {
@@ -169,7 +169,7 @@ async function openWechatReminder(name) {
 
     let wechatName = name;
     try {
-        const res = await fetchWithAuth('/api/sa-wechat?sa_name=' + encodeURIComponent(name));
+        const res = await fetchWithAuth('/api/sa-wechat/wechat?sa_name=' + encodeURIComponent(name));
         const result = await res.json();
         if (result.success && result.wechat_nickname) {
             wechatName = result.wechat_nickname;

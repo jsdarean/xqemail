@@ -432,7 +432,8 @@ button:active:not(:disabled) {
 }
 
 .person-row td:last-child {
-    min-width: 190px;
+    min-width: 220px;
+    white-space: nowrap;
 }
 
 /* 消息提示 - 更现代 */
