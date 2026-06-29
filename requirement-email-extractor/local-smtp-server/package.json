@@ -1,0 +1,14 @@
+{
+  "name": "local-smtp-relay",
+  "version": "1.0.0",
+  "description": "本地SMTP邮件中继服务器 - 接收Chrome插件请求，通过公司SMTP直接发送邮件",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "imap": "^0.8.19",
+    "mysql2": "^3.22.5",
+    "nodemailer": "^6.9.0"
+  }
+}

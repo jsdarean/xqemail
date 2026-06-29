@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - 需求催办系统</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="login-page">
+        <div class="login-box">
+            <div class="login-header">
+                <div class="icon">📧</div>
+                <h1>需求催办系统</h1>
+                <p>请登录后继续</p>
+            </div>
+
+            <div class="login-error" id="errorMsg"></div>
+
+            <form class="login-form" id="loginForm" onsubmit="return handleLogin(event)">
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <input type="text" id="username" name="username" placeholder="请输入用户名" required autofocus>
+                </div>
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <input type="password" id="password" name="password" placeholder="请输入密码" required>
+                </div>
+                <button type="submit" class="btn-primary" id="loginBtn">登 录</button>
+            </form>
+
+            <div class="login-footer">
+                默认账号：admin / changeme
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('errorMsg');
+            const loginBtn = document.getElementById('loginBtn');
+
+            errorMsg.style.display = 'none';
+            loginBtn.disabled = true;
+            loginBtn.textContent = '登录中...';
+
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const result = await res.json();
+
+                if (result.success) {
+                    window.location.href = '/index.html';
+                } else {
+                    errorMsg.textContent = result.error || '登录失败';
+                    errorMsg.style.display = 'block';
+                }
+            } catch (err) {
+                errorMsg.textContent = '网络错误：' + err.message;
+                errorMsg.style.display = 'block';
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = '登 录';
+            }
+
+            return false;
+        }
+    </script>
+</body>
+</html>

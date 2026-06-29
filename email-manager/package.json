@@ -1,0 +1,29 @@
+{
+  "name": "email-manager",
+  "version": "1.1.0",
+  "description": "需求催办管理系统 - 可分发版本",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node --check server.js && node --check routes/*.js && node --check utils/*.js && node --check config/*.js",
+    "init-db": "cd ../database && python add_columns.py"
+  },
+  "keywords": [
+    "email",
+    "reminder",
+    "requirements",
+    "management"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^2.3.0",
+    "cors": "^2.8.6",
+    "dotenv": "^16.4.5",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "mysql2": "^3.22.5",
+    "nodemailer": "^9.0.1"
+  }
+}

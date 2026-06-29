@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>需求提取kimi版</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- 顶部标题栏 -->
+    <header class="header">
+      <h1 class="title">📋 需求提取kimi版</h1>
+    </header>
+
+    <!-- Tab 切换 -->
+    <nav class="tabs">
+      <button class="tab active" data-tab="extract">📥 提取信息</button>
+      <button class="tab" data-tab="contacts">👥 收件人管理</button>
+      <button class="tab" data-tab="settings">⚙️ 提取规则</button>
+      <button class="tab" data-tab="email-settings">📧 邮箱设置</button>
+    </nav>
+
+    <!-- ==================== Tab 1: 提取信息 ==================== -->
+    <section class="tab-content active" id="tab-extract">
+      <!-- 当前页面信息 -->
+      <div class="card">
+        <div class="card-header">
+          <span>🌐 当前页面</span>
+          <span class="badge" id="page-status">未检测</span>
+        </div>
+        <div class="page-url" id="page-url">请打开目标页面后点击扩展图标</div>
+      </div>
+
+      <!-- 提取按钮 -->
+      <div class="btn-row" style="margin-bottom: 8px;">
+        <button class="btn btn-primary btn-block" id="btn-extract" style="flex: 3;">
+          🔍 提取需求信息
+        </button>
+        <button class="btn btn-secondary" id="btn-pick-mode" style="flex: 1;" title="点击页面元素指定字段值">
+          🎯 点选
+        </button>
+      </div>
+
+      <!-- 点选模式提示 -->
+      <div class="card pick-hint" id="pick-hint" style="display:none;">
+        <div class="card-header">
+          <span>🎯 点选模式</span>
+          <button class="btn btn-sm btn-danger" id="btn-cancel-pick">取消</button>
+        </div>
+        <p class="hint" id="pick-target-label">请在页面上点击「<b>需求编号</b>」对应的值</p>
+        <div class="pick-fields">
+          <button class="pick-field-btn active" data-field="reqId">1.需求编号</button>
+          <button class="pick-field-btn" data-field="reqName">2.需求名称</button>
+          <button class="pick-field-btn" data-field="proposer">3.提出人</button>
+          <button class="pick-field-btn" data-field="background">4.背景及目标</button>
+          <button class="pick-field-btn" data-field="description">5.需求描述</button>
+        </div>
+      </div>
+
+      <!-- 提取结果 -->
+      <div class="card" id="extract-result-card" style="display:none;">
+        <div class="card-header">
+          <span>📝 提取结果</span>
+          <button class="btn-icon" id="btn-clear-result" title="清空">✕</button>
+        </div>
+        <div id="extract-result">
+          <div class="field-item">
+            <label>需求编号</label>
+            <div class="field-value" id="field-req-id">-</div>
+          </div>
+          <div class="field-item">
+            <label>需求名称</label>
+            <div class="field-value" id="field-req-name">-</div>
+          </div>
+          <div class="field-item">
+            <label>提出人</label>
+            <div class="field-value" id="field-proposer">-</div>
+          </div>
+          <div class="field-item">
+            <label>提出时间</label>
+            <div class="field-value" id="field-propose-time">-</div>
+          </div>
+          <div class="field-item">
+            <label>需求背景及目标</label>
+            <div class="field-value" id="field-background">-</div>
+          </div>
+          <div class="field-item">
+            <label>需求描述</label>
+            <div class="field-value" id="field-description">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 邮件预览与发送 -->
+      <div class="card" id="email-card" style="display:none;">
+        <div class="card-header">
+          <span>✉️ 发送邮件</span>
+        </div>
+
+        <div class="form-group">
+          <label>收件人（可多选）</label>
+          <div class="recipient-select" id="recipient-list">
+            <div class="empty-hint">请先在「收件人管理」中导入联系人</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>抄送（选填）</label>
+          <input type="text" id="cc-emails" placeholder="多个邮箱用逗号分隔" class="input">
+        </div>
+
+        <div class="form-group">
+          <label>邮件主题</label>
+          <input type="text" id="email-subject" class="input" placeholder="【需求评估】需求名称">
+        </div>
+
+        <div class="form-group">
+          <label class="clarify-label">需求澄清（选填，将追加到邮件正文）</label>
+          <textarea class="input textarea" id="requirement-clarify" rows="4" placeholder="输入需求澄清内容..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>📎 附件（选填）</label>
+          <div class="attachment-area">
+            <button class="btn btn-sm btn-outline" id="btn-add-attachment">➕ 添加附件</button>
+            <input type="file" id="attachment-input" multiple style="display:none;">
+            <div class="attachment-list" id="attachment-list"></div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>邮件正文预览</label>
+          <div class="email-preview" id="email-preview"></div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btn-send-direct">
+            📧 直接发送邮件
+          </button>
+          <button class="btn btn-secondary" id="btn-send-mailto">
+            📬 邮件客户端发送
+          </button>
+          <button class="btn btn-secondary" id="btn-copy-content">
+            📋 复制
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== Tab 2: 收件人管理 ==================== -->
+    <section class="tab-content" id="tab-contacts">
+      <!-- 手动添加 -->
+      <div class="card">
+        <div class="card-header">
+          <span>➕ 手动添加收件人</span>
+        </div>
+        <div class="add-contact-form">
+          <div class="add-contact-row">
+            <div class="add-contact-field">
+              <label>姓名 <span class="required">*</span></label>
+              <input type="text" id="add-contact-name" placeholder="例如：张三" class="input">
+            </div>
+            <div class="add-contact-field">
+              <label>系统</label>
+              <input type="text" id="add-contact-system" placeholder="例如：CRM" class="input">
+            </div>
+            <div class="add-contact-field add-contact-field-wide">
+              <label>邮箱 <span class="required">*</span></label>
+              <input type="email" id="add-contact-email" placeholder="例如：zhangsan@example.com" class="input">
+            </div>
+            <div class="add-contact-field">
+              <label>微信昵称</label>
+              <input type="text" id="add-contact-wechat" placeholder="选填" class="input">
+            </div>
+          </div>
+          <button class="btn btn-primary" id="btn-add-contact">➕ 添加</button>
+          <div id="add-contact-msg" class="add-contact-msg"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span>📂 导入/导出收件人</span>
+        </div>
+        <p class="hint">从 Excel 文件导入（支持 .xlsx 格式），Excel 需包含列：姓名、系统、邮箱</p>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btn-import-excel">
+            📥 导入 Excel 文件
+          </button>
+          <button class="btn btn-primary" id="btn-export-excel">
+            📤 导出为 Excel
+          </button>
+          <button class="btn btn-secondary" id="btn-load-default">
+            📂 加载默认文件 (email.xlsx)
+          </button>
+        </div>
+        <input type="file" id="file-input" accept=".xlsx" style="display:none;">
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span>👥 联系人列表</span>
+          <div style="display:inline-flex;gap:6px;align-items:center;">
+            <span class="badge" id="contact-source" style="font-size:11px;background:#e8f0fe;color:#1a73e8;">本地</span>
+            <span class="badge" id="contact-count">0人</span>
+            <button class="btn btn-sm btn-primary" id="btn-refresh-contacts" style="font-size:11px;padding:2px 8px;">🔄 从数据库刷新</button>
+          </div>
+        </div>
+        <div class="contact-list" id="contact-list">
+          <div class="empty-hint">暂无联系人，请导入 Excel 或手动添加</div>
+        </div>
+        <div class="btn-row" style="margin-top: 8px;">
+          <button class="btn btn-danger btn-sm" id="btn-clear-contacts">清空联系人</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== Tab 3: 提取规则 ==================== -->
+    <section class="tab-content" id="tab-settings">
+      <div class="card">
+        <div class="card-header">
+          <span>🔧 提取规则配置</span>
+          <button class="btn btn-sm btn-secondary" id="btn-reset-rules">恢复默认</button>
+        </div>
+        <p class="hint">配置每个字段的 CSS 选择器，用于从页面中提取信息</p>
+
+        <div class="form-group">
+          <label>需求编号 <span class="label-tip">(CSS选择器，也匹配「运营工单ID」)</span></label>
+          <input type="text" class="input" id="rule-req-id" placeholder="例如: .req-id, #requirementId, [data-field='id'], .order-id, td:contains('运营工单ID') + td">
+        </div>
+        <div class="form-group">
+          <label>需求名称 <span class="label-tip">(CSS选择器，也匹配「工单标题」)</span></label>
+          <input type="text" class="input" id="rule-req-name" placeholder="例如: .req-name, h2.title, .workorder-title, td:contains('工单标题') + td">
+        </div>
+        <div class="form-group">
+          <label>提出人 <span class="label-tip">(CSS选择器，也匹配「发布人」)</span></label>
+          <input type="text" class="input" id="rule-proposer" placeholder="例如: .proposer, .publisher, td:contains('发布人') + td">
+        </div>
+        <div class="form-group">
+          <label>需求背景及目标 <span class="label-tip">(CSS选择器)</span></label>
+          <input type="text" class="input" id="rule-background" placeholder="例如: .background, #reqBg">
+        </div>
+        <div class="form-group">
+          <label>需求描述 <span class="label-tip">(CSS选择器，也匹配「工单内容」)</span></label>
+          <input type="text" class="input" id="rule-description" placeholder="例如: .description, #reqDesc, .detail-content, .workorder-content, td:contains('工单内容') + td">
+        </div>
+
+        <div class="form-group">
+          <label>页面匹配规则（URL 正则，每行一个）</label>
+          <textarea class="input textarea" id="rule-url-patterns" rows="3" placeholder="例如:&#10;.*tapd\\.cn.*&#10;.*jira\\.com.*&#10;.*project.*requirement.*"></textarea>
+        </div>
+
+        <button class="btn btn-primary btn-block" id="btn-save-rules">💾 保存规则</button>
+      </div>
+    </section>
+
+    <!-- ==================== Tab 4: 邮箱设置 ==================== -->
+    <section class="tab-content" id="tab-email-settings">
+      <!-- 本地服务器状态 -->
+      <div class="card">
+        <div class="card-header">
+          <span>🖥️ 本地邮件服务器</span>
+          <span class="badge" id="server-status-badge">未检测</span>
+        </div>
+        <p class="hint">
+          🔒 本地方案：邮件数据不经过任何第三方，直接通过公司 SMTP 发送。
+          使用前需启动本地中继服务。
+        </p>
+        <div class="btn-row">
+          <button class="btn btn-secondary" id="btn-check-server">🔍 检测服务器</button>
+          <button class="btn btn-secondary" id="btn-start-server-help">📖 启动说明</button>
+        </div>
+        <div class="field-value" id="server-check-result" style="margin-top:8px;font-size:12px;display:none;"></div>
+      </div>
+
+      <!-- SMTP 配置 -->
+      <div class="card">
+        <div class="card-header">
+          <span>⚙️ SMTP 邮箱配置</span>
+          <button class="btn btn-sm btn-secondary" id="btn-test-smtp">🔍 测试发送</button>
+        </div>
+        <p class="hint">配置你的企业邮箱 SMTP 信息，授权码将保存在本地 Chrome 存储中。</p>
+
+        <div class="form-group">
+          <label>SMTP 服务器地址</label>
+          <input type="text" class="input" id="smtp-host" placeholder="例如: smtp.example.com">
+        </div>
+        <div class="form-group">
+          <label>端口</label>
+          <input type="number" class="input" id="smtp-port" placeholder="465" value="465">
+        </div>
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="smtp-secure" checked> 使用 SSL/TLS 加密
+          </label>
+        </div>
+        <div class="form-group">
+          <label>邮箱账号</label>
+          <input type="email" class="input" id="smtp-user" placeholder="例如: yourname@company.com">
+        </div>
+        <div class="form-group">
+          <label>邮箱密码 / 授权码</label>
+          <div class="password-wrapper">
+            <input type="password" class="input" id="smtp-pass" placeholder="输入邮箱授权码">
+            <button class="btn-icon toggle-pwd" id="btn-toggle-pwd" title="显示/隐藏">👁️</button>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary btn-block" id="btn-save-smtp">💾 保存邮箱设置</button>
+        </div>
+      </div>
+
+      <!-- 默认抄送邮箱 -->
+      <div class="card">
+        <div class="card-header">
+          <span>📋 默认抄送邮箱</span>
+        </div>
+        <p class="hint">设置默认抄送邮箱，每次打开发送页面时自动填入。</p>
+        <div class="form-group">
+          <input type="email" class="input" id="default-cc" placeholder="例如: yourname@company.com">
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btn-save-default-cc">💾 保存</button>
+          <button class="btn btn-outline" id="btn-clear-default-cc">🗑️ 清空</button>
+        </div>
+      </div>
+
+      <!-- 邮件签名 -->
+      <div class="card">
+        <div class="card-header">
+          <span>✍️ 邮件签名</span>
+        </div>
+        <p class="hint">编辑你的邮件签名，发送邮件时会自动追加到正文末尾。支持 HTML 格式。</p>
+        <div class="form-group">
+          <textarea class="input textarea" id="email-signature" rows="5" placeholder="例如：&#10;-- &#10;张三&#10;XX公司&#10;邮箱：zhangsan@company.com"></textarea>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btn-save-signature">💾 保存签名</button>
+          <button class="btn btn-outline" id="btn-clear-signature">🗑️ 清空签名</button>
+        </div>
+      </div>
+
+      <!-- IMAP 配置（已发送存档） -->
+      <div class="card">
+        <div class="card-header">
+          <span>📁 IMAP 已发送存档</span>
+        </div>
+        <p class="hint">发送邮件后，通过 IMAP 将副本存档到邮箱的「已发送」文件夹，这样网页邮箱也能看到发送记录。</p>
+
+        <div class="form-group">
+          <label>IMAP 服务器地址</label>
+          <input type="text" class="input" id="imap-host" placeholder="例如: imap.example.com">
+        </div>
+        <div class="form-group">
+          <label>端口</label>
+          <input type="number" class="input" id="imap-port" placeholder="993" value="993">
+        </div>
+        <p class="hint" style="font-size: 11px; color: #888;">
+          ℹ️ IMAP 账号密码与 SMTP 相同，无需单独填写。服务器地址留空时自动从 SMTP 地址推导（smtp.xxx → imap.xxx）。
+        </p>
+      </div>
+
+      <!-- 启动说明 -->
+      <div class="card" id="server-help-card" style="display:none;">
+        <div class="card-header">
+          <span>📖 本地服务器说明</span>
+        </div>
+        <div class="hint">
+          <div style="background:#e8f5e9;padding:8px 10px;margin-bottom:6px;border-radius:4px;font-size:11px;">
+            ✅ 已设置为<b>开机自动启动</b>（静默后台运行，无窗口），无需每次手动操作。
+          </div>
+          <ol style="margin:0;padding-left:18px;line-height:1.8;">
+            <li>服务器已加入 Windows 启动项，<b>开机后自动在后台运行</b></li>
+            <li>如需手动启动：进入 local-smtp-server 目录双击 <b>start-server.bat</b></li>
+            <li>打开本插件后，在邮箱设置中查看服务器状态</li>
+          </ol>
+          <div style="background:#f5f5f5;padding:8px 10px;margin-top:6px;border-radius:4px;font-size:11px;">
+            🔒 <b>安全保障：</b><br>
+            • 服务器仅监听 127.0.0.1（本机），外部网络无法访问<br>
+            • 邮件内容直接从你的电脑发往公司 SMTP 服务器，不经任何第三方<br>
+            • 授权码仅存储在本地 Chrome 存储中
+          </div>
+        </div>
+      </div>
+
+      <!-- MySQL 数据库设置 -->
+      <div class="card">
+        <div class="card-header">
+          <span>🗄️ MySQL 数据库设置</span>
+          <button class="btn btn-sm btn-secondary" id="btn-test-db">🔍 测试连接</button>
+        </div>
+        <p class="hint">配置本地 MySQL 数据库连接，发送邮件后会自动将需求信息写入数据库。</p>
+
+        <div class="form-group">
+          <label>数据库主机</label>
+          <input type="text" class="input" id="db-host" placeholder="例如: localhost 或 127.0.0.1">
+        </div>
+        <div class="form-group">
+          <label>端口</label>
+          <input type="number" class="input" id="db-port" placeholder="3306" value="3306">
+        </div>
+        <div class="form-group">
+          <label>数据库名</label>
+          <input type="text" class="input" id="db-name" placeholder="例如: requirement_db">
+        </div>
+        <div class="form-group">
+          <label>用户名</label>
+          <input type="text" class="input" id="db-user" placeholder="例如: root">
+        </div>
+        <div class="form-group">
+          <label>密码</label>
+          <input type="password" class="input" id="db-pass" placeholder="输入数据库密码">
+        </div>
+        <div class="form-group">
+          <label>表名</label>
+          <input type="text" class="input" id="db-table" placeholder="例如: sent_emails（将自动创建）">
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btn-save-db">💾 保存数据库设置</button>
+          <button class="btn btn-secondary" id="btn-clear-db">🗑️ 清空</button>
+        </div>
+        <div class="field-value" id="db-test-result" style="margin-top:8px;font-size:12px;display:none;"></div>
+      </div>
+    </section>
+
+    <!-- Toast 提示 -->
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <script src="../lib/xlsx.full.min.js"></script>
+  <script src="utils/crypto.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

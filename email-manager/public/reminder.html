@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>需求催办 - 邮件需求管理系统</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="page-wrapper">
+        <!-- 顶部导航 -->
+        <nav class="top-nav">
+            <div class="nav-content">
+                <div class="nav-brand">
+                    <span class="icon">📧</span>
+                    <span>需求催办系统</span>
+                </div>
+                <div class="nav-links">
+                    <a href="/">需求管理</a>
+                    <a href="/reminder.html" class="active">催办提醒</a>
+                    <a href="#" onclick="logout(); return false;" style="color: var(--danger);">退出登录</a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 主内容 -->
+        <main class="main-content">
+            <div class="container narrow">
+                <!-- 页面标题 -->
+                <div class="page-header">
+                    <h1>⏰ 需求催办</h1>
+                    <div class="subtitle">向未填写工作量的责任人发送邮件或微信催办</div>
+                </div>
+
+                <!-- 摘要 -->
+                <div class="summary" id="summary">正在加载数据...</div>
+
+                <!-- 数据表格卡片 -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">待催办责任人</div>
+                        <div class="toolbar">
+                            <button class="btn-gray" onclick="location.href='/'">← 返回首页</button>
+                            <button class="btn-primary" onclick="loadData()">🔄 刷新数据</button>
+                        </div>
+                    </div>
+                    <div class="card-body" style="padding-top: 0;">
+                        <div class="table-container">
+                            <div id="tableContainer">
+                                <div class="loading">正在加载数据...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 催办邮件模态框 -->
+    <div id="reminderModal" class="modal">
+        <div class="modal-content small">
+            <div class="modal-header orange">
+                <h2>确认发送催办邮件</h2>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 12px;">
+                    <strong>责任人：</strong> <span id="modal-sa-name"></span>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <strong>待催办条数：</strong> <span id="modal-count"></span>
+                </div>
+                <div style="color: var(--gray-500); font-size: 13px; line-height: 1.6;">
+                    系统将自动从 sa_info 表获取邮箱地址并发送催办邮件。
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-gray" onclick="closeModal()">取消</button>
+                <button class="btn-success" id="btn-send-reminder" onclick="confirmSendReminder()">确认发送</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 微信催办弹窗 -->
+    <div id="wechatModal" class="modal">
+        <div class="modal-content small">
+            <div class="modal-header green">
+                <h2>💬 微信催办</h2>
+                <button class="modal-close" onclick="closeWechatModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom:12px; color: var(--gray-500); font-size: 13px;">
+                    以下内容已自动复制到剪贴板，请直接粘贴到微信发送：
+                </div>
+                <div id="wechatText" style="background:var(--gray-50); padding:16px; border-radius:var(--radius); font-size:14px; line-height:1.8; white-space:pre-line; color:var(--gray-900); border:1px solid var(--gray-200);"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-gray" onclick="closeWechatModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/reminder.js"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 虚拟环境
+venv/
+.env
+
+# 系统文件
+.DS_Store
+Thumbs.db
+nul
+
+# IDE
+.vscode/
+.idea/
+
+# 日志
+*.log
+logs/
+
+# 临时文件
+*.tmp
+*.bak
+*.swp
+~$*.docx
