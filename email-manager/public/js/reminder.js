@@ -90,7 +90,7 @@ function renderTable() {
         '<th>责任人</th>' +
         '<th>待填工作量条数</th>' +
         '<th style="cursor:pointer;" onclick="toggleSort()">提出时间 ' + sortIcon + '</th>' +
-        '<th style="width:220px;">操作</th>' +
+        '<th style="width:220px; text-align:center;">操作</th>' +
         '</tr></thead><tbody>';
 
     names.forEach(name => {
@@ -110,7 +110,7 @@ function renderTable() {
             '<td><span class="person-name">' + name + '</span></td>' +
             '<td><span class="count-badge">' + count + ' 条</span></td>' +
             '<td><span class="propose-date">' + fmtDate(earliestDate) + '</span></td>' +
-            '<td style="white-space:nowrap;">' +
+            '<td style="white-space:nowrap; text-align:center;">' +
             '<button class="btn-danger btn-small" onclick="event.stopPropagation(); openReminderModal(\'' + name.replace(/'/g, "\\'") + '\')">📧 邮件催办</button> ' +
             '<button class="btn-success btn-small" onclick="event.stopPropagation(); openWechatReminder(\'' + name.replace(/'/g, "\\'") + '\')">💬 微信催办</button>' +
             '</td>' +
