@@ -13,7 +13,7 @@ const DEFAULT_RULES = {
   proposer: '.proposer, .creator, #creator, [data-field="creator"], .proposer-name, .submitter, .create-user, .publisher, .issuer, [data-field="publisher"], [data-field="issuer"], [class*="publisher"], [class*="issuer"], td:contains("提出人") + td, td:contains("发布人") + td, td:contains("工单发布人") + td, .field:contains("提出人") .value, .field:contains("发布人") .value, label:contains("提出人") + * .value, label:contains("发布人") + * .value',
   proposeTime: '.propose-time, .create-time, .submit-time, #createTime, [data-field="createTime"], [data-field="proposeTime"], [data-field="submitTime"], .field:contains("提出时间") .value, .field:contains("创建时间") .value, label:contains("提出时间") + * .value, label:contains("创建时间") + * .value, td:contains("提出时间") + td, td:contains("创建时间") + td',
   background: '.background, #reqBg, [data-field="background"], .requirement-background, .bg-desc, td:contains("需求背景及目标") + td, .field:contains("需求背景及目标") .value, label:contains("需求背景及目标") + * .value',
-  description: '.description, #reqDesc, [data-field="description"], .requirement-description, .detail-content, .req-content, .order-content, .workorder-content, .ticket-content, [data-field="orderContent"], [data-field="workOrderContent"], [class*="order-content"], [class*="ticket-content"], td:contains("需求描述") + td, td:contains("工单内容") + td, .field:contains("需求描述") .value, .field:contains("工单内容") .value, label:contains("需求描述") + * .value, label:contains("工单内容") + * .value'
+  description: '.description, #reqDesc, #req_detail$text, [name="req_detail"], #req_detail, [data-field="description"], .requirement-description, .detail-content, .req-content, .order-content, .workorder-content, .ticket-content, [data-field="orderContent"], [data-field="workOrderContent"], [class*="order-content"], [class*="ticket-content"], td:contains("需求描述") + td, td:contains("工单内容") + td, .field:contains("需求描述") .value, .field:contains("工单内容") .value, label:contains("需求描述") + * .value, label:contains("工单内容") + * .value'
 };
 
 // ==================== 标签→值 通用提取器（工单系统专用）====================
@@ -247,11 +247,16 @@ function extractFromPage(rules) {
     // 明确的垃圾值
     const garbage = ['on', 'off', 'true', 'false', 'yes', 'no', 'undefined', 'null', '请选择', '请选择...', '--', '—', '无'];
     if (garbage.includes(lower)) return false;
+    // 过滤纯符号/单字符垃圾值（如必填标记 *、•、● 等）
+    if (/^[\*\•\●\#\-\_\+\=\×\÷]+$/.test(v.trim())) return false;
+    // description / background 应该是较长的文本（至少 10 字符）
+    if ((field === 'description' || field === 'background') && v.length < 10) return false;
     // reqId/reqName 至少要有实质内容
     if ((field === 'reqId' || field === 'reqName') && v.length <= 2) return false;
     // 值不应该看起来像标签名（避免匹配到了另一个字段的标签）
+    // description / background 本身就可能以这些词开头，跳过该检查
     const labelLike = /^(需求|工单|关联|联系|处理|审批|状态|类型|优先级|创建|修改|申请|提交|指派|所属|归属|来源|影响|操作|管理|维护|查看|编辑|删除|新增|确认|取消|详情|附件|备注|意见|说明|描述|内容|标题|名称|编号|ID|状态)/;
-    if (labelLike.test(v)) return false;
+    if (field !== 'description' && field !== 'background' && labelLike.test(v)) return false;
     // 字段特定的严格过滤
     if (field === 'proposer') {
       // 提出人/发布人/创建人：应该是 2-4 个汉字的人名，或"姓名+工号"格式
@@ -284,6 +289,35 @@ function extractFromPage(rules) {
     return t.includes(keyword);
   }
 
+  /**
+   * 解析 textarea 真实值：当 textarea 为空或仅含占位符时，
+   * 尝试从同容器内的 hidden input 或 id 对应的 hidden input（如 req_detail$text -> req_detail$value）读取。
+   * 适配 miniui 等框架的 readonly textarea 场景。
+   */
+  function resolveTextareaValue(ta) {
+    if (!ta || ta.tagName.toLowerCase() !== 'textarea') return '';
+    let v = clean(ta.value);
+    if (v && v !== '*') return v;
+
+    // 1) 根据 id 模式推测（miniui 常见：xxx$text 对应 xxx$value）
+    const id = ta.id || '';
+    if (id && id.includes('$text')) {
+      const hiddenId = id.replace('$text', '$value');
+      const hiddenById = document.getElementById(hiddenId);
+      if (hiddenById && hiddenById.value && hiddenById.value !== '*') return hiddenById.value;
+    }
+
+    // 2) 同容器内及向上遍历查找 hidden input（处理 hidden input 与 textarea 不在同一 span 的情况）
+    let container = ta.closest('.mini-textbox, .mini-textarea, td, div, span') || ta.parentElement;
+    while (container && container !== document.body) {
+      const hidden = container.querySelector('input[type="hidden"]');
+      if (hidden && hidden.value && hidden.value !== '*') return hidden.value;
+      container = container.parentElement;
+    }
+
+    return v;
+  }
+
   // ============== 策略 1: CSS 选择器 ==============
   function tryCSSSelector(selectorList, field) {
     if (!selectorList) return '';
@@ -291,7 +325,11 @@ function extractFromPage(rules) {
     for (const sel of selectors) {
       try {
         const el = document.querySelector(sel);
-        const v = clean(getValue(el));
+        let v = clean(getValue(el));
+        // 若匹配到空 textarea，尝试解析其 hidden input 真实值
+        if (el && el.tagName && el.tagName.toLowerCase() === 'textarea' && (!v || v === '*')) {
+          v = clean(resolveTextareaValue(el));
+        }
         if (isValidValue(v, field)) return v;
       } catch (e) { /* ignore */ }
     }
@@ -339,8 +377,17 @@ function extractFromPage(rules) {
             const container = cells[j];
             const valEl = container.querySelector('input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"])') ||
                           container.querySelector('textarea, select') || container;
-            const v = clean(getValue(valEl));
+            let v = clean(getValue(valEl));
+            // 若 textarea 为空，尝试从 hidden input 读取真实值
+            if (valEl && valEl.tagName && valEl.tagName.toLowerCase() === 'textarea' && (!v || v === '*')) {
+              v = clean(resolveTextareaValue(valEl));
+            }
             if (isValidValue(v, field)) return v;
+            // fallback：form 元素没有值时，直接取单元格可见文本
+            if (!v) {
+              const textV = clean(container.textContent);
+              if (isValidValue(textV, field)) return textV;
+            }
             // 如果这个 cell 也包含类似标签的文字，不要继续找
             if (clean(container.textContent).length < 20) break;
           }
@@ -383,7 +430,7 @@ function extractFromPage(rules) {
         const tag = sibling.tagName ? sibling.tagName.toLowerCase() : '';
         if (['span', 'div', 'p', 'td', 'dd'].includes(tag)) {
           const textV = clean(sibling.textContent);
-          if (isValidValue(textV, field) && textV.length < 200) {
+          if (isValidValue(textV, field) && textV.length < 2000) {
             // 确认这不像标签
             let looksLikeValue = true;
             for (const kw of kws) {
@@ -406,7 +453,7 @@ function extractFromPage(rules) {
           if (v) return v;
           // 纯文本
           const textV = clean(parentSibling.textContent);
-          if (isValidValue(textV, field) && textV.length < 200) {
+          if (isValidValue(textV, field) && textV.length < 2000) {
             let looksLikeValue = true;
             for (const kw of kws) {
               if (matchKeyword(textV, kw)) { looksLikeValue = false; break; }
@@ -450,8 +497,17 @@ function extractFromPage(rules) {
             }
             const valEl = nextEl.querySelector('input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"])') || 
                           nextEl.querySelector('textarea, select') || nextEl;
-            const v = clean(getValue(valEl));
+            let v = clean(getValue(valEl));
+            // 若 textarea 为空，尝试从 hidden input 读取真实值
+            if (valEl && valEl.tagName && valEl.tagName.toLowerCase() === 'textarea' && (!v || v === '*')) {
+              v = clean(resolveTextareaValue(valEl));
+            }
             if (isValidValue(v, field)) return v;
+            // fallback：form 元素没有值时，直接取容器可见文本
+            if (!v) {
+              const textV = clean(nextEl.textContent);
+              if (isValidValue(textV, field)) return textV;
+            }
           }
         }
       }
@@ -463,7 +519,8 @@ function extractFromPage(rules) {
   function tryTextareaContent(field) {
     const textareas = document.querySelectorAll('textarea');
     for (const ta of textareas) {
-      const v = clean(ta.value);
+      // 使用 resolveTextareaValue 获取真实值（兼容 hidden input）
+      const v = clean(resolveTextareaValue(ta));
       if (!v || v.length < 20) continue;
       // 尝试找到这个 textarea 前面的标签
       const labelEl = ta.closest('td')?.previousElementSibling ||
@@ -492,7 +549,8 @@ function extractFromPage(rules) {
       if (labelText.length > 30) continue;
       let matchedKw = null;
       for (const kw of kws) {
-        if (labelText === kw || labelText === kw + '：' || labelText === kw + ':') {
+        // 使用 matchKeyword 支持 *需求描述:、需求描述：等前缀/后缀变体
+        if (matchKeyword(labelText, kw)) {
           matchedKw = kw;
           break;
         }
@@ -511,7 +569,11 @@ function extractFromPage(rules) {
         const inputEl = valTd.querySelector('input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"])') ||
                         valTd.querySelector('textarea, select');
         if (inputEl) {
-          const v = clean(getValue(inputEl));
+          let v = clean(getValue(inputEl));
+          // 若 textarea 为空，尝试从 hidden input 读取真实值
+          if (inputEl.tagName && inputEl.tagName.toLowerCase() === 'textarea' && (!v || v === '*')) {
+            v = clean(resolveTextareaValue(inputEl));
+          }
           if (isValidValue(v, field)) return v;
         }
 
@@ -549,7 +611,8 @@ function extractFromPage(rules) {
         const tdText = clean(td.textContent);
         let matchedKw = null;
         for (const kw of kws) {
-          if (tdText === kw || tdText === kw + '：' || tdText === kw + ':') {
+          // 使用 matchKeyword 支持 *需求描述:、需求描述：等前缀/后缀变体
+          if (matchKeyword(tdText, kw)) {
             matchedKw = kw;
             break;
           }
@@ -568,6 +631,12 @@ function extractFromPage(rules) {
               const editable = nextTrVal.querySelector('.mce-content-body, [contenteditable="true"]');
               if (editable) {
                 const v = clean(editable.textContent || editable.innerText);
+                if (isValidValue(v, field) && v.length > 5) return v;
+              }
+              // 再看 textarea 及其 hidden input 真实值
+              const ta = nextTrVal.querySelector('textarea');
+              if (ta) {
+                const v = clean(resolveTextareaValue(ta));
                 if (isValidValue(v, field) && v.length > 5) return v;
               }
               const v = clean(nextTrVal.textContent);

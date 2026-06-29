@@ -51,15 +51,48 @@ function extractInfo(rules) {
     return (text || '').replace(/[\s\u00a0\u3000]+/g, ' ').trim();
   }
 
+  function isPureSymbol(text) {
+    return /^[\*\•\●\#\-\_\+\=\×\÷]+$/.test((text || '').trim());
+  }
+
   function matchKeyword(elText, keyword) {
     return elText.replace(/^[\*\•\●\#\s]+/, '').includes(keyword);
+  }
+
+  /**
+   * 解析 textarea 真实值：当 textarea 为空或仅含占位符时，
+   * 尝试从同容器内的 hidden input 或 id 对应的 hidden input（如 req_detail$text -> req_detail$value）读取。
+   * 适配 miniui 等框架的 readonly textarea 场景。
+   */
+  function resolveTextareaValue(ta) {
+    if (!ta || ta.tagName.toLowerCase() !== 'textarea') return '';
+    let v = getValue(ta);
+    if (v && v !== '*') return v;
+
+    // 1) 根据 id 模式推测（miniui 常见：xxx$text 对应 xxx$value）
+    const id = ta.id || '';
+    if (id && id.includes('$text')) {
+      const hiddenId = id.replace('$text', '$value');
+      const hiddenById = document.getElementById(hiddenId);
+      if (hiddenById && hiddenById.value && hiddenById.value !== '*') return hiddenById.value;
+    }
+
+    // 2) 同容器内及向上遍历查找 hidden input（处理 hidden input 与 textarea 不在同一 span 的情况）
+    let container = ta.closest('.mini-textbox, .mini-textarea, td, div, span') || ta.parentElement;
+    while (container && container !== document.body) {
+      const hidden = container.querySelector('input[type="hidden"]');
+      if (hidden && hidden.value && hidden.value !== '*') return hidden.value;
+      container = container.parentElement;
+    }
+
+    return v;
   }
 
   function getFirstValue(els) {
     for (const el of els) {
       if (!el) continue;
       const v = getValue(el);
-      if (v) return v;
+      if (v && !isPureSymbol(v)) return v;
     }
     return '';
   }
@@ -70,8 +103,13 @@ function extractInfo(rules) {
     const selectors = selectorList.split(',').map(s => s.trim()).filter(Boolean);
     for (const sel of selectors) {
       try {
-        const v = getValue(document.querySelector(sel));
-        if (v) return v;
+        const el = document.querySelector(sel);
+        let v = getValue(el);
+        // 若匹配到空 textarea，尝试解析其 hidden input 真实值
+        if (el && el.tagName && el.tagName.toLowerCase() === 'textarea' && (!v || v === '*')) {
+          v = resolveTextareaValue(el);
+        }
+        if (v && !isPureSymbol(v)) return v;
       } catch (e) { /* ignore */ }
     }
     return '';
@@ -87,7 +125,7 @@ function extractInfo(rules) {
         const forId = label.getAttribute('for');
         if (forId) {
           const v = getValue(document.getElementById(forId));
-          if (v) return v;
+          if (v && !isPureSymbol(v)) return v;
         }
         const v = getFirstValue(label.querySelectorAll('input, textarea, select'));
         if (v) return v;
@@ -106,9 +144,17 @@ function extractInfo(rules) {
         for (const kw of kws) {
           if (!matchKeyword(cellText, kw)) continue;
           for (let j = i + 1; j < cells.length; j++) {
-            const valEl = cells[j].querySelector('input, textarea, select') || cells[j];
-            const v = getValue(valEl);
-            if (v) return v;
+            const container = cells[j];
+            const valEl = container.querySelector('input, textarea, select') || container;
+            let v = getValue(valEl);
+            // 若 textarea 为空，尝试从 hidden input 读取真实值
+            if (valEl && valEl.tagName && valEl.tagName.toLowerCase() === 'textarea' && (!v || v === '*')) {
+              v = resolveTextareaValue(valEl);
+            }
+            if (v && !isPureSymbol(v)) return v;
+            // fallback：form 元素没有值或是纯符号垃圾值时，直接取单元格可见文本
+            const textV = clean(container.textContent);
+            if (textV && !isPureSymbol(textV)) return textV;
           }
         }
       }
@@ -182,13 +228,19 @@ function extractInfo(rules) {
             const nextEl = allEls[j];
             const valEl = nextEl.querySelector('input:not([type="hidden"]):not([type="submit"]):not([type="button"])') ||
                           nextEl.querySelector('textarea, select') || nextEl;
-            if (['INPUT', 'TEXTAREA', 'SELECT'].includes(valEl.tagName)) {
-              const v = getValue(valEl);
-              if (v) return v;
-            } else {
-              const v = getValue(valEl);
-              if (v && v.length > 1 && v.length < 500) return v;
+            let v = getValue(valEl);
+            // 若 textarea 为空，尝试从 hidden input 读取真实值
+            if (valEl && valEl.tagName && valEl.tagName.toLowerCase() === 'textarea' && (!v || v === '*')) {
+              v = resolveTextareaValue(valEl);
             }
+            if (['INPUT', 'TEXTAREA', 'SELECT'].includes(valEl.tagName)) {
+              if (v && !isPureSymbol(v)) return v;
+            } else {
+              if (v && v.length > 1 && v.length < 500 && !isPureSymbol(v)) return v;
+            }
+            // fallback：form 元素没有值或是纯符号垃圾值时，直接取容器可见文本
+            const textV = clean(nextEl.textContent);
+            if (textV && textV.length > 1 && textV.length < 500 && !isPureSymbol(textV)) return textV;
           }
         }
       }
@@ -200,8 +252,9 @@ function extractInfo(rules) {
   function strategyTextarea(kws) {
     const textareas = document.querySelectorAll('textarea');
     for (const ta of textareas) {
-      const v = getValue(ta);
-      if (!v || v.length < 20) continue;
+      // 使用 resolveTextareaValue 获取真实值（兼容 hidden input）
+      const v = resolveTextareaValue(ta);
+      if (!v || v.length < 20 || isPureSymbol(v)) continue;
       const labelEl = ta.closest('td')?.previousElementSibling ||
                       ta.closest('tr')?.querySelector('td:first-child, th') ||
                       ta.previousElementSibling;
@@ -237,6 +290,14 @@ function extractInfo(rules) {
       if (value) break;
     }
     result[field] = value;
+  }
+
+  // 后处理：清理 description / background 的纯符号垃圾值（如必填标记 *）
+  for (const field of ['description', 'background']) {
+    const v = result[field];
+    if (v && (v.length < 10 || /^[\*\•\●\#\-\_\+\=\×\÷]+$/.test(v.trim()))) {
+      result[field] = '';
+    }
   }
 
   return result;
