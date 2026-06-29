@@ -205,16 +205,16 @@ function renderGroupedTable() {
             childRow.style.display = 'none';
             childRow.innerHTML = `
                 <td></td><td></td><td></td>
-                <td style="padding-left: 30px; color: #666;">${rows.length > 1 ? '└ 系统' + (index + 1) + ': ' + (row.system_name || '') : ''}</td>
+                <td style="padding-left: 30px; color: var(--ink-mute);">${rows.length > 1 ? '└ 系统' + (index + 1) + ': ' + (row.system_name || '') : ''}</td>
                 <td></td>
                 <td>
                     <span class="${!isInvolved ? 'system-name-not-involved' : ''}">${row.system_name || ''}</span>
-                    ${needsWarning ? '<span style="color: #c62828; margin-left: 5px;">⚠️</span>' : ''}
+                    ${needsWarning ? '<span style="color: var(--danger); margin-left: 5px;">⚠️</span>' : ''}
                 </td>
                 <td>${row.sa_name || ''}</td>
                 <td>
                     <input type="number" step="0.5" min="0" value="${row.workload ?? ''}" data-field="workload" data-id="${row.id}"
-                        onchange="onWorkloadChange(${row.id}, this.value)" style="${needsWarning ? 'border-color: #c62828;' : ''}">
+                        onchange="onWorkloadChange(${row.id}, this.value)" style="${needsWarning ? 'border-color: var(--danger);' : ''}">
                 </td>
                 <td style="text-align: center;">
                     <select data-field="is_involved" data-id="${row.id}" onchange="onInvolvedChange(${row.id}, this.value)">
@@ -304,16 +304,16 @@ function showDetail(reqId) {
 
     html += '<div class="detail-section"><h3>系统分工</h3>';
     html += '<table style="width:100%; border-collapse:collapse; font-size:13px;">';
-    html += '<tr style="background:#f0f0f0;"><th style="padding:8px; border:1px solid #ddd; text-align:left;">系统</th><th style="padding:8px; border:1px solid #ddd; text-align:left;">责任人</th><th style="padding:8px; border:1px solid #ddd; text-align:left;">工作量</th><th style="padding:8px; border:1px solid #ddd; text-align:left;">涉及开发</th></tr>';
+    html += '<tr style="background:var(--ink); color:var(--on-primary);"><th style="padding:8px; border:1px solid var(--hairline); text-align:left; font-weight:400;">系统</th><th style="padding:8px; border:1px solid var(--hairline); text-align:left; font-weight:400;">责任人</th><th style="padding:8px; border:1px solid var(--hairline); text-align:left; font-weight:400;">工作量</th><th style="padding:8px; border:1px solid var(--hairline); text-align:left; font-weight:400;">涉及开发</th></tr>';
     rows.forEach(row => {
         const workloadIsZero = parseFloat(row.workload) === 0 && Number(row.is_involved) === 1;
-        const workloadStyle = workloadIsZero ? 'style="color:#d32f2f; font-weight:bold;"' : '';
-        const rowHighlight = workloadIsZero ? 'style="background:#ffebee;" ' : '';
+        const workloadStyle = workloadIsZero ? 'style="color:var(--danger); font-weight:400;"' : '';
+        const rowHighlight = workloadIsZero ? 'style="background:var(--danger-light);" ' : '';
         html += '<tr ' + rowHighlight + '>' +
-            '<td style="padding:8px; border:1px solid #ddd;">' + (row.system_name || '-') + '</td>' +
-            '<td style="padding:8px; border:1px solid #ddd;">' + (row.sa_name || '-') + '</td>' +
-            '<td style="padding:8px; border:1px solid #ddd;" ' + workloadStyle + '>' + (row.workload || '-') + '</td>' +
-            '<td style="padding:8px; border:1px solid #ddd;">' + (Number(row.is_involved) === 1 ? '是' : '否') + '</td>' +
+            '<td style="padding:8px; border:1px solid var(--hairline);">' + (row.system_name || '-') + '</td>' +
+            '<td style="padding:8px; border:1px solid var(--hairline);">' + (row.sa_name || '-') + '</td>' +
+            '<td style="padding:8px; border:1px solid var(--hairline);" ' + workloadStyle + '>' + (row.workload || '-') + '</td>' +
+            '<td style="padding:8px; border:1px solid var(--hairline);">' + (Number(row.is_involved) === 1 ? '是' : '否') + '</td>' +
             '</tr>';
     });
     html += '</table></div>';
@@ -332,19 +332,19 @@ function closeEmailRecordsModal() {
 
 async function openEmailRecords() {
     document.getElementById('emailRecordsModal').style.display = 'block';
-    document.getElementById('emailRecordsBody').innerHTML = '<p style="text-align:center;color:#999;">加载中...</p>';
+    document.getElementById('emailRecordsBody').innerHTML = '<p style="text-align:center;color:var(--ink-mute);">加载中...</p>';
 
     try {
         const res = await fetchWithAuth('/api/email-records?limit=20');
         const result = await res.json();
         if (!result.success) {
-            document.getElementById('emailRecordsBody').innerHTML = '<p style="color:#d32f2f;text-align:center;">加载失败：' + (result.error || '未知错误') + '</p>';
+            document.getElementById('emailRecordsBody').innerHTML = '<p style="color:var(--danger);text-align:center;">加载失败：' + (result.error || '未知错误') + '</p>';
             return;
         }
 
         const records = result.data || [];
         if (records.length === 0) {
-            document.getElementById('emailRecordsBody').innerHTML = '<p style="text-align:center;color:#999;">暂无催办记录</p>';
+            document.getElementById('emailRecordsBody').innerHTML = '<p style="text-align:center;color:var(--ink-mute);">暂无催办记录</p>';
             return;
         }
 
@@ -365,7 +365,7 @@ async function openEmailRecords() {
         html += '</table>';
         document.getElementById('emailRecordsBody').innerHTML = html;
     } catch (err) {
-        document.getElementById('emailRecordsBody').innerHTML = '<p style="color:#d32f2f;text-align:center;">加载失败：' + err.message + '</p>';
+        document.getElementById('emailRecordsBody').innerHTML = '<p style="color:var(--danger);text-align:center;">加载失败：' + err.message + '</p>';
     }
 }
 
