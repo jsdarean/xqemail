@@ -38,6 +38,15 @@ function isTrustedOrigin(origin) {
 }
 
 /**
+ * 判断请求是否来自本机
+ * 服务器只监听 127.0.0.1，因此来自本机 IP 的请求（如 Web 主应用后端转发）也视为可信
+ */
+function isLocalRequest(req) {
+  const ip = req.socket.remoteAddress;
+  return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
+}
+
+/**
  * 设置响应头
  */
 function setCorsHeaders(res, origin) {
@@ -84,8 +93,9 @@ const server = http.createServer(async (req, res) => {
   // 敏感接口校验来源
   const sensitivePaths = ['/send', '/write-db', '/test-db', '/query-sa-info', '/check-sa-info-duplicate', '/add-sa-info', '/delete-sa-info', '/update-sa-info'];
   if (req.method === 'POST' && sensitivePaths.includes(req.url)) {
-    if (!isTrustedOrigin(origin)) {
-      console.warn(`[Security] 拒绝非信任来源请求: ${req.url}, origin=${origin || 'none'}`);
+    // Web 主应用后端通过 http.request 转发请求时没有 Origin，但连接来自本机，同样可信
+    if (!isTrustedOrigin(origin) && !isLocalRequest(req)) {
+      console.warn(`[Security] 拒绝非信任来源请求: ${req.url}, origin=${origin || 'none'}, ip=${req.socket.remoteAddress}`);
       sendError(res, 403, '拒绝访问：请求来源不受信任');
       return;
     }
