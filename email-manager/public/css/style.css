@@ -751,9 +751,8 @@ tr:hover td {
 
 .system-tags {
     display: flex;
-    flex-wrap: wrap;
-    gap: 3px;
-    max-height: 3em;
+    flex-wrap: nowrap;
+    gap: 4px;
     overflow: hidden;
     align-items: center;
 }
@@ -806,6 +805,58 @@ tr:hover td {
 
 .dev-ticket-cell:hover {
     color: var(--primary);
+}
+
+/* 系统标签 +N 与 tooltip */
+.system-tag.more-tag {
+    background: var(--canvas);
+    color: var(--primary);
+    border: 1px solid var(--primary);
+    cursor: pointer;
+    font-weight: 400;
+}
+
+.system-tag.more-tag:hover {
+    background: var(--primary);
+    color: var(--on-primary);
+    transform: translateY(-1px);
+}
+
+.systems-tooltip {
+    display: none;
+    position: absolute;
+    z-index: 1001;
+    background: var(--canvas);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 14px 16px;
+    min-width: 180px;
+    max-width: 320px;
+    animation: tooltipFadeIn 0.2s var(--ease-out);
+}
+
+@keyframes tooltipFadeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.systems-tooltip-title {
+    font-size: 0.75rem;
+    color: var(--ink-mute);
+    margin-bottom: 10px;
+    font-weight: 400;
+    letter-spacing: 0.5px;
+}
+
+.systems-tooltip-body {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.systems-tooltip-body .system-tag {
+    font-size: 0.72rem;
 }
 
 /* 表单元素 */

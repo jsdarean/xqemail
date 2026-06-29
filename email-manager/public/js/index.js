@@ -8,6 +8,7 @@ let modifiedData = new Map();
 let allExpanded = false;
 let currentPage = 1;
 const pageSize = 10;
+const systemsMap = new Map();
 
 // 处理 API 认证（基于 Session）
 async function fetchWithAuth(url, options = {}) {
@@ -161,12 +162,24 @@ function renderGroupedTable() {
             }
         });
 
-        const systemTags = uniqueSystems.map(s => {
+        // 缓存完整系统列表，供 +N tooltip 使用
+        systemsMap.set(reqId, uniqueSystems);
+
+        // 系统标签：最多显示 2 个，其余折叠到 +N
+        const maxVisible = 2;
+        const visibleSystems = uniqueSystems.slice(0, maxVisible);
+        const hiddenSystems = uniqueSystems.slice(maxVisible);
+
+        let systemTagsHtml = visibleSystems.map(s => {
             let cls = 'system-tag';
             if (s.warning) cls += ' warning';
             if (s.strikethrough) cls += ' not-involved';
             return `<span class="${cls}">${s.name}</span>`;
         }).join('');
+
+        if (hiddenSystems.length > 0) {
+            systemTagsHtml += `<span class="system-tag more-tag" onclick="showSystemsTooltip(event, '${reqId.replace(/'/g, "\\'")}')">+${hiddenSystems.length}</span>`;
+        }
 
         const hasWarning = uniqueSystems.some(s => s.warning);
         const sas = [...new Set(rows.map(r => r.sa_name).filter(Boolean))];
@@ -183,7 +196,7 @@ function renderGroupedTable() {
             <td>${fmtDate(firstRow.propose_date)}</td>
             <td><div class="cell-text"><span class="req-name-link" onclick="showDetail('${reqId}')">${firstRow.req_name || ''}</span></div></td>
             <td>${firstRow.proposer || ''}</td>
-            <td><div class="system-tags">${systemTags}</div></td>
+            <td><div class="system-tags">${systemTagsHtml}</div></td>
             <td><div class="cell-text">${sas.join(', ')}</div></td>
             <td>${totalWorkload > 0 ? totalWorkload.toFixed(1) : '-'}</td>
             <td>${anyInvolved ? '是' : '否'}</td>
@@ -288,6 +301,53 @@ function toggleAllRows() {
         expandIcon.textContent = allExpanded ? '▼' : '▶';
         childRows.forEach(r => r.style.display = allExpanded ? '' : 'none');
     });
+}
+
+function showSystemsTooltip(event, reqId) {
+    event.stopPropagation();
+    const systems = systemsMap.get(reqId);
+    if (!systems || systems.length === 0) return;
+
+    let tooltip = document.getElementById('systemsTooltip');
+    if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.id = 'systemsTooltip';
+        tooltip.className = 'systems-tooltip';
+        document.body.appendChild(tooltip);
+    }
+
+    const tagsHtml = systems.map(s => {
+        let cls = 'system-tag';
+        if (s.warning) cls += ' warning';
+        if (s.strikethrough) cls += ' not-involved';
+        return `<span class="${cls}">${s.name}</span>`;
+    }).join('');
+
+    tooltip.innerHTML = '<div class="systems-tooltip-title">涉及系统</div><div class="systems-tooltip-body">' + tagsHtml + '</div>';
+    tooltip.style.display = 'block';
+
+    const rect = event.target.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect();
+    let left = rect.left + window.scrollX;
+    let top = rect.bottom + window.scrollY + 8;
+
+    if (left + tooltipRect.width > window.innerWidth) {
+        left = window.innerWidth - tooltipRect.width - 16;
+    }
+    if (top + tooltipRect.height > window.innerHeight + window.scrollY) {
+        top = rect.top + window.scrollY - tooltipRect.height - 8;
+    }
+
+    tooltip.style.left = left + 'px';
+    tooltip.style.top = top + 'px';
+
+    function hide(e) {
+        if (!tooltip.contains(e.target)) {
+            tooltip.style.display = 'none';
+            document.removeEventListener('click', hide);
+        }
+    }
+    setTimeout(() => document.addEventListener('click', hide), 0);
 }
 
 function showDetail(reqId) {
