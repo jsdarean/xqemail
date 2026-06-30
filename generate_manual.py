@@ -99,7 +99,7 @@ run._element.rPr.rFonts.set(qn('w:eastAsia'), 'Microsoft YaHei')
 
 version = doc.add_paragraph()
 version.alignment = WD_ALIGN_PARAGRAPH.CENTER
-run = version.add_run('版本：v1.2.0（可分发版）')
+run = version.add_run('版本：v1.3.0（可分发版）')
 run.font.size = Pt(12)
 run.font.color.rgb = RGBColor(107, 114, 128)
 run.font.name = 'Microsoft YaHei'
@@ -107,7 +107,7 @@ run._element.rPr.rFonts.set(qn('w:eastAsia'), 'Microsoft YaHei')
 
 date_p = doc.add_paragraph()
 date_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-run = date_p.add_run('日期：2026-06-25')
+run = date_p.add_run('日期：2026-06-30')
 run.font.size = Pt(12)
 run.font.color.rgb = RGBColor(107, 114, 128)
 run.font.name = 'Microsoft YaHei'
@@ -139,9 +139,10 @@ toc_items = [
     '    5.6 查看催办记录',
     '    5.7 配置 Web 端邮箱',
     '    5.8 退出登录',
-    '    5.9 使用 Chrome 插件提取需求信息',
-    '    5.10 插件收件人管理',
-    '    5.11 插件邮箱与数据库设置',
+    '    5.9 集团需求导出',
+    '    5.10 使用 Chrome 插件提取需求信息',
+    '    5.11 插件收件人管理',
+    '    5.12 插件邮箱与数据库设置',
     '6. 常见问题排查',
     '7. 安全建议',
 ]
@@ -156,12 +157,13 @@ add_heading_cn('1. 系统概述', level=1)
 add_paragraph_cn('需求催办系统是一款基于 Node.js + Express + MySQL 的 Web 应用，用于管理需求评估流程，支持以下核心功能：')
 features = [
     'Web 端需求管理：按需求分组展示，支持展开/折叠、分页、排序',
-    '工作量编辑：为每个需求填写工作量、标记是否涉及开发、填写开发单号',
+    '工作量编辑：为每个需求填写工作量、标记是否涉及开发、填写开发单号，支持单行保存',
     '邮件催办：一键向未填写工作量的责任人发送催办邮件',
     '微信催办：自动生成催办文案并复制到剪贴板',
     '催办记录：查看历史催办记录及发送状态',
     'Web 端邮箱设置：可视化配置 SMTP/IMAP 邮箱参数',
     'Chrome 插件：在需求/工单页面一键提取信息并发送邮件，自动写入数据库',
+    '集团需求导出：筛选非敏捷需求，按页勾选后一键导出 Excel',
 ]
 for f in features:
     doc.add_paragraph(f, style='List Bullet')
@@ -193,10 +195,13 @@ for r in reqs:
 # ==================== 3. 项目结构 ====================
 add_heading_cn('3. 项目结构说明', level=1)
 add_paragraph_cn('项目主要目录及文件说明如下：')
-add_code_block('''2026-06-18-09-00-23-distributable/
+add_code_block('''xqemail/
 ├── email-manager/              # 主应用目录
 │   ├── config/                 # 配置加载器
 │   ├── public/                 # 前端静态资源（HTML/CSS/JS）
+│   │   ├── group.html          # 集团需求页面
+│   │   ├── js/group.js         # 集团需求页面脚本
+│   │   └── lib/                # Excel 导出库
 │   ├── routes/                 # API 路由
 │   ├── utils/                  # 工具函数（认证、数据库、加密等）
 │   ├── .env                    # 环境变量（需手动配置）
@@ -342,6 +347,8 @@ cols = ['需求ID', '提出时间', '需求名称', '提单人', '涉及系统',
 doc.add_paragraph('、'.join(cols))
 add_screenshot('02_index.png', '需求管理首页')
 add_paragraph_cn('页面顶部显示统计卡片：总需求数、待填写工作量、已完成评估。')
+add_paragraph_cn('涉及系统与责任人过多时，默认最多显示 2 个，超出部分以 +N 气泡展示，点击气泡可查看全部。')
+add_paragraph_cn('责任人中不涉及开发的会以斜体显示，并标注“（不涉及开发）”；整体行仅展示涉及开发的责任人和系统。')
 add_paragraph_cn('点击需求名称可查看详情弹窗。')
 add_screenshot('05_detail.png', '需求详情弹窗')
 
@@ -351,7 +358,8 @@ steps = [
     '在“工作量”列输入人天数（支持 0.5 递增）',
     '在“涉及开发”列选择“是”或“否”',
     '如需填写开发单号，在“开发单号”列输入',
-    '修改完成后，点击顶部“保存修改”按钮',
+    '点击该行右侧的“保存”按钮可单独保存当前系统',
+    '也可修改多行后点击顶部“保存修改”按钮进行批量保存',
 ]
 for i, s in enumerate(steps, 1):
     doc.add_paragraph(f'{i}. {s}')
@@ -404,7 +412,20 @@ add_note('邮箱密码保存后会自动加密存储到 email-config.json 文件
 add_heading_cn('5.8 退出登录', level=2)
 add_paragraph_cn('点击顶部导航栏右侧的“退出登录”链接，即可安全退出系统并返回登录页。')
 
-add_heading_cn('5.9 使用 Chrome 插件提取需求信息', level=2)
+add_heading_cn('5.9 集团需求导出', level=2)
+add_paragraph_cn('点击顶部导航“集团需求”进入集团运营工单页面。')
+group_steps = [
+    '页面自动过滤需求ID中不包含“敏捷需求”的运营工单',
+    '列表按工单发布时间从大到小排序，每页最多展示 10 条',
+    '在需要导出的工单前勾选复选框，也可点击表头复选框全选当前页',
+    '点击右上角“一键导出”按钮，系统自动生成 Excel 文件并下载',
+]
+for i, s in enumerate(group_steps, 1):
+    doc.add_paragraph(f'{i}. {s}')
+add_paragraph_cn('导出文件的表头会自动替换为：运营工单ID、工单发布时间、运营工单名称、发布人、开发单号或说明；文件名为“集团运营工单YYYYMMDDhhmmss.xlsx”。')
+add_note('导出时只包含已勾选的工单，未勾选的数据不会写入 Excel。')
+
+add_heading_cn('5.10 使用 Chrome 插件提取需求信息', level=2)
 add_paragraph_cn('插件安装并配置完成后，可在任意需求/工单页面提取信息并发送邮件：')
 plugin_usage_steps = [
     '打开目标需求页面（如 TAPD、Jira、内部工单系统等）',
@@ -420,7 +441,7 @@ add_screenshot('07_plugin_extract.png', '插件提取信息界面')
 add_paragraph_cn('发送成功后，插件会自动将需求信息写入 Web 端使用的 sent_emails 表，可在 Web 端“催办记录”中查看。')
 add_note('发送前请确保：1）本地 SMTP 中继服务器已启动；2）插件邮箱设置中的 SMTP 信息正确；3）已选择至少一个收件人。')
 
-add_heading_cn('5.10 插件收件人管理', level=2)
+add_heading_cn('5.11 插件收件人管理', level=2)
 add_paragraph_cn('插件支持两种收件人来源：')
 doc.add_paragraph('本地联系人：通过 Excel 导入或手动添加，仅保存在当前 Chrome 用户配置中', style='List Bullet')
 doc.add_paragraph('数据库联系人：当插件数据库设置正确时，自动从 sa_info 表加载，并与 Web 端催办系统共享', style='List Bullet')
@@ -435,7 +456,7 @@ for i, s in enumerate(contact_steps, 1):
     doc.add_paragraph(f'{i}. {s}')
 add_screenshot('08_plugin_contacts.png', '插件收件人管理界面')
 
-add_heading_cn('5.11 插件邮箱与数据库设置', level=2)
+add_heading_cn('5.12 插件邮箱与数据库设置', level=2)
 add_paragraph_cn('切换到插件的“邮箱设置”标签，按页面提示填写：')
 plugin_email_fields = [
     'SMTP 服务器地址、端口、是否 SSL/TLS',
