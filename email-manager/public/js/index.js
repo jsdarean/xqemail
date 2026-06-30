@@ -142,10 +142,13 @@ function renderGroupedTable() {
         const firstRow = rows[0];
 
         // 系统标签
-        const systems = rows.map(r => ({
+        const involvedRows = rows.filter(r => Number(r.is_involved) === 1);
+
+        // 整体行只展示涉及开发的系统
+        const systems = involvedRows.map(r => ({
             name: r.system_name || '',
             warning: parseFloat(r.workload) === 0 && Number(r.is_involved) === 1,
-            strikethrough: Number(r.is_involved) !== 1
+            strikethrough: false
         }));
 
         const uniqueSystems = [];
@@ -163,7 +166,7 @@ function renderGroupedTable() {
             }
         });
 
-        // 缓存完整系统列表，供 +N tooltip 使用
+        // 缓存涉及开发的系统列表，供 +N tooltip 使用
         systemsMap.set(reqId, uniqueSystems);
 
         // 系统标签：最多显示 2 个，其余折叠到 +N
@@ -184,23 +187,18 @@ function renderGroupedTable() {
 
         const hasWarning = uniqueSystems.some(s => s.warning);
 
-        // 责任人信息：包含名字和是否涉及开发（同一人负责多系统时，任一涉及则视为涉及）
+        // 整体行只展示涉及开发的责任人
         const saInfos = [];
         const saSeen = new Set();
-        rows.forEach(r => {
+        involvedRows.forEach(r => {
             if (!r.sa_name) return;
             if (!saSeen.has(r.sa_name)) {
                 saSeen.add(r.sa_name);
-                saInfos.push({ name: r.sa_name, involved: Number(r.is_involved) === 1 });
-            } else {
-                const existing = saInfos.find(s => s.name === r.sa_name);
-                if (existing && !existing.involved && Number(r.is_involved) === 1) {
-                    existing.involved = true;
-                }
+                saInfos.push({ name: r.sa_name, involved: true });
             }
         });
 
-        // 缓存完整责任人列表，供 +N tooltip 使用
+        // 缓存涉及开发的责任人列表，供 +N tooltip 使用
         saMap.set(reqId, saInfos);
 
         // 责任人标签：最多显示 2 个，其余折叠到 +N
