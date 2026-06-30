@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>集团需求 - 邮件需求管理系统</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="page-wrapper">
+        <!-- 顶部导航 -->
+        <nav class="top-nav">
+            <div class="nav-content">
+                <div class="nav-brand">
+                    <span class="icon">📧</span>
+                    <span>需求催办系统</span>
+                </div>
+                <div class="nav-links">
+                    <a href="/">需求管理</a>
+                    <a href="/reminder.html">催办提醒</a>
+                    <a href="/group.html" class="active">集团需求</a>
+                    <a href="#" onclick="logout(); return false;" style="color: var(--danger);">退出登录</a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 主内容 -->
+        <main class="main-content">
+            <div class="container narrow">
+                <!-- 页面标题 -->
+                <div class="page-header">
+                    <h1>🏢 集团需求</h1>
+                    <div class="summary" id="summary">正在加载数据...</div>
+                </div>
+
+                <!-- 数据表格卡片 -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">集团运营工单列表</div>
+                        <div class="toolbar">
+                            <button class="btn-gray" onclick="location.href='/'">← 返回首页</button>
+                            <button class="btn-primary" onclick="loadData()">🔄 刷新数据</button>
+                            <button class="btn-success" onclick="exportSelected()">📥 一键导出</button>
+                        </div>
+                    </div>
+                    <div class="card-body" style="padding-top: 0;">
+                        <div class="table-container">
+                            <div id="tableContainer">
+                                <div class="loading">正在加载数据...</div>
+                            </div>
+                        </div>
+                        <div class="pagination" id="pagination"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/lib/xlsx.full.min.js"></script>
+    <script src="/js/group.js"></script>
+</body>
+</html>

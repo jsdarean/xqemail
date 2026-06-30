@@ -1003,6 +1003,52 @@ select {
     box-shadow: 0 2px 8px rgba(83, 58, 253, 0.24);
 }
 
+/* 集团需求分页 */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    padding: 22px 0 0 0;
+    flex-wrap: wrap;
+}
+
+.page-btn {
+    padding: 8px 14px;
+    font-size: 0.8rem;
+    background: var(--canvas);
+    color: var(--ink-secondary);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.page-btn:hover:not(:disabled) {
+    background: var(--canvas-soft);
+    border-color: var(--hairline);
+    color: var(--ink);
+}
+
+.page-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.page-btn.active {
+    background: var(--primary);
+    color: var(--on-primary);
+    border-color: transparent;
+    font-weight: 400;
+    box-shadow: 0 2px 8px rgba(83, 58, 253, 0.24);
+}
+
+.page-ellipsis {
+    color: var(--ink-mute);
+    font-size: 0.85rem;
+    padding: 0 6px;
+}
+
 .count-badge {
     display: inline-flex;
     align-items: center;
