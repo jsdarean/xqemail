@@ -794,6 +794,19 @@ tr:hover td {
     text-decoration: line-through;
 }
 
+/* 责任人不涉及开发时的斜体标记 */
+.system-tag.sa-not-involved {
+    font-style: italic;
+    color: var(--ink-mute) !important;
+    background: var(--canvas-soft) !important;
+}
+
+.sa-not-involved-suffix {
+    font-style: italic;
+    margin-left: 4px;
+    white-space: nowrap;
+}
+
 .system-name-not-involved {
     text-decoration: line-through;
     color: var(--ink-mute);

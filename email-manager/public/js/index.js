@@ -183,17 +183,38 @@ function renderGroupedTable() {
         }
 
         const hasWarning = uniqueSystems.some(s => s.warning);
-        const sas = [...new Set(rows.map(r => r.sa_name).filter(Boolean))];
+
+        // 责任人信息：包含名字和是否涉及开发（同一人负责多系统时，任一涉及则视为涉及）
+        const saInfos = [];
+        const saSeen = new Set();
+        rows.forEach(r => {
+            if (!r.sa_name) return;
+            if (!saSeen.has(r.sa_name)) {
+                saSeen.add(r.sa_name);
+                saInfos.push({ name: r.sa_name, involved: Number(r.is_involved) === 1 });
+            } else {
+                const existing = saInfos.find(s => s.name === r.sa_name);
+                if (existing && !existing.involved && Number(r.is_involved) === 1) {
+                    existing.involved = true;
+                }
+            }
+        });
 
         // 缓存完整责任人列表，供 +N tooltip 使用
-        saMap.set(reqId, sas);
+        saMap.set(reqId, saInfos);
 
         // 责任人标签：最多显示 2 个，其余折叠到 +N
         const maxSaVisible = 2;
-        const visibleSas = sas.slice(0, maxSaVisible);
-        const hiddenSas = sas.slice(maxSaVisible);
+        const visibleSas = saInfos.slice(0, maxSaVisible);
+        const hiddenSas = saInfos.slice(maxSaVisible);
 
-        let saTagsHtml = visibleSas.map(name => `<span class="system-tag">${name}</span>`).join('');
+        function renderSaTag(sa) {
+            const cls = sa.involved ? '' : 'sa-not-involved';
+            const suffix = sa.involved ? '' : '<span class="sa-not-involved-suffix">（不涉及开发）</span>';
+            return `<span class="system-tag ${cls}">${sa.name}${suffix}</span>`;
+        }
+
+        let saTagsHtml = visibleSas.map(renderSaTag).join('');
         if (hiddenSas.length > 0) {
             saTagsHtml += `<span class="system-tag more-tag" onclick="showSaTooltip(event, '${reqId.replace(/'/g, "\\'")}')">+${hiddenSas.length}</span>`;
         }
@@ -378,7 +399,11 @@ function showSaTooltip(event, reqId) {
         document.body.appendChild(tooltip);
     }
 
-    const tagsHtml = sas.map(name => `<span class="system-tag">${name}</span>`).join('');
+    const tagsHtml = sas.map(sa => {
+        const cls = sa.involved ? '' : 'sa-not-involved';
+        const suffix = sa.involved ? '' : '<span class="sa-not-involved-suffix">（不涉及开发）</span>';
+        return `<span class="system-tag ${cls}">${sa.name}${suffix}</span>`;
+    }).join('');
 
     tooltip.innerHTML = '<div class="systems-tooltip-title">责任人</div><div class="systems-tooltip-body">' + tagsHtml + '</div>';
     tooltip.style.display = 'block';
