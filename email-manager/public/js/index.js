@@ -246,6 +246,7 @@ function renderGroupedTable() {
             const workloadNum = parseFloat(row.workload) || 0;
             const needsWarning = workloadNum === 0 && isInvolved;
             const devTicketNo = row.dev_ticket_no || '';
+            const showRowSaveBtn = rows.length > 1;
 
             const childRow = document.createElement('tr');
             childRow.className = 'child-row';
@@ -272,8 +273,11 @@ function renderGroupedTable() {
                     </select>
                 </td>
                 <td>
-                    <input type="text" value="${devTicketNo}" data-field="dev_ticket_no" data-id="${row.id}"
-                        onchange="markModified(${row.id}, 'dev_ticket_no', this.value)" placeholder="输入单号">
+                    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                        <input type="text" value="${devTicketNo}" data-field="dev_ticket_no" data-id="${row.id}"
+                            onchange="markModified(${row.id}, 'dev_ticket_no', this.value)" placeholder="输入单号" style="flex:1;min-width:80px;">
+                        ${showRowSaveBtn ? `<button type="button" class="btn-success btn-small" onclick="saveRow(${row.id})">保存</button>` : ''}
+                    </div>
                     ${devTicketNo ? `<div class="cell-text"><div class="dev-ticket-cell" onclick="copyText('${devTicketNo.replace(/'/g, "\\'")}')" title="点击复制">${devTicketNo}</div></div>` : ''}
                 </td>
             `;
@@ -583,6 +587,54 @@ function copyText(text) {
         document.body.removeChild(ta);
         showMessage('已复制：' + text, 'success');
     });
+}
+
+async function saveRow(id) {
+    const row = document.querySelector('tr.child-row[data-id="' + id + '"]');
+    if (!row) return;
+
+    const workloadInput = row.querySelector('input[data-field="workload"]');
+    const involvedSelect = row.querySelector('select[data-field="is_involved"]');
+    const devTicketInput = row.querySelector('input[data-field="dev_ticket_no"]');
+
+    const updates = [{
+        id: id,
+        workload: workloadInput ? workloadInput.value : '',
+        is_involved: involvedSelect ? parseInt(involvedSelect.value) : 1,
+        dev_ticket_no: devTicketInput ? devTicketInput.value : ''
+    }];
+
+    try {
+        const response = await fetchWithAuth('/api/emails/batch-update', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updates)
+        });
+        const result = await response.json();
+
+        if (result.success) {
+            showMessage('单行保存成功', 'success');
+            // 移除该行的修改标记
+            if (modifiedData.has(id)) {
+                const remaining = { ...modifiedData.get(id) };
+                delete remaining.workload;
+                delete remaining.is_involved;
+                delete remaining.dev_ticket_no;
+                if (Object.keys(remaining).length === 0) {
+                    modifiedData.delete(id);
+                } else {
+                    modifiedData.set(id, remaining);
+                }
+            }
+            row.classList.remove('modified');
+            updateGroupRow(id);
+            setTimeout(() => loadData(), 500);
+        } else {
+            showMessage('保存失败: ' + result.error, 'error');
+        }
+    } catch (error) {
+        showMessage('请求失败: ' + error.message, 'error');
+    }
 }
 
 async function saveAll() {
