@@ -246,7 +246,6 @@ function renderGroupedTable() {
             const workloadNum = parseFloat(row.workload) || 0;
             const needsWarning = workloadNum === 0 && isInvolved;
             const devTicketNo = row.dev_ticket_no || '';
-            const showRowSaveBtn = rows.length > 1;
 
             const childRow = document.createElement('tr');
             childRow.className = 'child-row';
@@ -276,7 +275,7 @@ function renderGroupedTable() {
                     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
                         <input type="text" value="${devTicketNo}" data-field="dev_ticket_no" data-id="${row.id}"
                             onchange="markModified(${row.id}, 'dev_ticket_no', this.value)" placeholder="输入单号" style="flex:1;min-width:80px;">
-                        ${showRowSaveBtn ? `<button type="button" class="btn-success btn-small" onclick="saveRow(${row.id})">保存</button>` : ''}
+                        <button type="button" class="btn-success btn-small" onclick="saveRow(${row.id})">保存</button>
                     </div>
                     ${devTicketNo ? `<div class="cell-text"><div class="dev-ticket-cell" onclick="copyText('${devTicketNo.replace(/'/g, "\\'")}')" title="点击复制">${devTicketNo}</div></div>` : ''}
                 </td>
