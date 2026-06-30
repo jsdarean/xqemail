@@ -9,6 +9,7 @@ let allExpanded = false;
 let currentPage = 1;
 const pageSize = 10;
 const systemsMap = new Map();
+const saMap = new Map();
 
 // 处理 API 认证（基于 Session）
 async function fetchWithAuth(url, options = {}) {
@@ -183,6 +184,20 @@ function renderGroupedTable() {
 
         const hasWarning = uniqueSystems.some(s => s.warning);
         const sas = [...new Set(rows.map(r => r.sa_name).filter(Boolean))];
+
+        // 缓存完整责任人列表，供 +N tooltip 使用
+        saMap.set(reqId, sas);
+
+        // 责任人标签：最多显示 2 个，其余折叠到 +N
+        const maxSaVisible = 2;
+        const visibleSas = sas.slice(0, maxSaVisible);
+        const hiddenSas = sas.slice(maxSaVisible);
+
+        let saTagsHtml = visibleSas.map(name => `<span class="system-tag">${name}</span>`).join('');
+        if (hiddenSas.length > 0) {
+            saTagsHtml += `<span class="system-tag more-tag" onclick="showSaTooltip(event, '${reqId.replace(/'/g, "\\'")}')">+${hiddenSas.length}</span>`;
+        }
+
         const totalWorkload = rows.reduce((sum, r) => sum + (parseFloat(r.workload) || 0), 0);
         const anyInvolved = rows.some(r => Number(r.is_involved) === 1);
         const devTicket = firstRow.dev_ticket_no || '';
@@ -197,7 +212,7 @@ function renderGroupedTable() {
             <td><div class="cell-text"><span class="req-name-link" onclick="showDetail('${reqId}')">${firstRow.req_name || ''}</span></div></td>
             <td>${firstRow.proposer || ''}</td>
             <td><div class="system-tags">${systemTagsHtml}</div></td>
-            <td><div class="cell-text">${sas.join(', ')}</div></td>
+            <td><div class="system-tags">${saTagsHtml}</div></td>
             <td>${totalWorkload > 0 ? totalWorkload.toFixed(1) : '-'}</td>
             <td>${anyInvolved ? '是' : '否'}</td>
             <td>${devTicket ? `<div class="cell-text"><span class="dev-ticket-cell" onclick="copyText('${devTicket.replace(/'/g, "\\'")}')" title="点击复制">${devTicket}</span></div>` : '-'}</td>
@@ -324,6 +339,48 @@ function showSystemsTooltip(event, reqId) {
     }).join('');
 
     tooltip.innerHTML = '<div class="systems-tooltip-title">涉及系统</div><div class="systems-tooltip-body">' + tagsHtml + '</div>';
+    tooltip.style.display = 'block';
+
+    const rect = event.target.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect();
+    let left = rect.left + window.scrollX;
+    let top = rect.bottom + window.scrollY + 8;
+
+    if (left + tooltipRect.width > window.innerWidth) {
+        left = window.innerWidth - tooltipRect.width - 16;
+    }
+    if (top + tooltipRect.height > window.innerHeight + window.scrollY) {
+        top = rect.top + window.scrollY - tooltipRect.height - 8;
+    }
+
+    tooltip.style.left = left + 'px';
+    tooltip.style.top = top + 'px';
+
+    function hide(e) {
+        if (!tooltip.contains(e.target)) {
+            tooltip.style.display = 'none';
+            document.removeEventListener('click', hide);
+        }
+    }
+    setTimeout(() => document.addEventListener('click', hide), 0);
+}
+
+function showSaTooltip(event, reqId) {
+    event.stopPropagation();
+    const sas = saMap.get(reqId);
+    if (!sas || sas.length === 0) return;
+
+    let tooltip = document.getElementById('systemsTooltip');
+    if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.id = 'systemsTooltip';
+        tooltip.className = 'systems-tooltip';
+        document.body.appendChild(tooltip);
+    }
+
+    const tagsHtml = sas.map(name => `<span class="system-tag">${name}</span>`).join('');
+
+    tooltip.innerHTML = '<div class="systems-tooltip-title">责任人</div><div class="systems-tooltip-body">' + tagsHtml + '</div>';
     tooltip.style.display = 'block';
 
     const rect = event.target.getBoundingClientRect();
