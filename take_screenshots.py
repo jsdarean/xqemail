@@ -44,6 +44,15 @@ try:
     # 等待跳转到首页
     wait.until(EC.url_contains('/index.html'))
     time.sleep(2)
+
+    # 展开第一个需求，展示子行保存按钮
+    try:
+        first_expand = driver.find_element(By.CSS_SELECTOR, '.expand-icon')
+        first_expand.click()
+        time.sleep(1)
+    except Exception as e:
+        print('展开子行失败:', e)
+
     driver.save_screenshot(os.path.join(OUTPUT_DIR, '02_index.png'))
     print('已保存 02_index.png')
 
@@ -73,6 +82,13 @@ try:
     time.sleep(1)
     driver.save_screenshot(os.path.join(OUTPUT_DIR, '05_detail.png'))
     print('已保存 05_detail.png')
+
+    # 6. 集团需求页面截图
+    driver.get(f'{BASE_URL}/group.html')
+    wait.until(EC.presence_of_element_located((By.ID, 'tableContainer')))
+    time.sleep(2)
+    driver.save_screenshot(os.path.join(OUTPUT_DIR, '10_group.png'))
+    print('已保存 10_group.png')
 
 finally:
     driver.quit()

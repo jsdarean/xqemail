@@ -422,6 +422,7 @@ group_steps = [
 ]
 for i, s in enumerate(group_steps, 1):
     doc.add_paragraph(f'{i}. {s}')
+add_screenshot('10_group.png', '集团需求页面')
 add_paragraph_cn('导出文件的表头会自动替换为：运营工单ID、工单发布时间、运营工单名称、发布人、开发单号或说明；文件名为“集团运营工单YYYYMMDDhhmmss.xlsx”。')
 add_note('导出时只包含已勾选的工单，未勾选的数据不会写入 Excel。')
 
