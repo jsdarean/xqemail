@@ -83,4 +83,30 @@ router.put('/batch-update', async (req, res) => {
     }
 });
 
+// 我的待办：所有涉及开发的工作量已评估，但至少有一个开发单号未录入
+router.get('/todo', async (req, res) => {
+    try {
+        const [rows] = await pool.execute(
+            `SELECT id, req_id, req_name, proposer, system_name, sa_name,
+                    COALESCE(workload, 0) AS workload, COALESCE(is_involved, 1) AS is_involved,
+                    dev_ticket_no, background, description, clarification,
+                    propose_time, DATE(propose_time) AS propose_date
+             FROM sent_emails
+             WHERE req_id IN (
+                 SELECT req_id
+                 FROM sent_emails
+                 GROUP BY req_id
+                 HAVING SUM(CASE WHEN COALESCE(is_involved, 1) = 1 THEN 1 ELSE 0 END) > 0
+                    AND SUM(CASE WHEN COALESCE(is_involved, 1) = 1 AND (workload IS NULL OR workload = 0) THEN 1 ELSE 0 END) = 0
+                    AND SUM(CASE WHEN COALESCE(is_involved, 1) = 1 AND (dev_ticket_no IS NULL OR dev_ticket_no = '') THEN 1 ELSE 0 END) > 0
+             )
+             ORDER BY propose_time DESC`
+        );
+        res.json({ success: true, data: rows });
+    } catch (error) {
+        console.error('查询我的待办错误:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 module.exports = router;

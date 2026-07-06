@@ -90,6 +90,13 @@ try:
     driver.save_screenshot(os.path.join(OUTPUT_DIR, '10_group.png'))
     print('已保存 10_group.png')
 
+    # 7. 我的待办页面截图
+    driver.get(f'{BASE_URL}/todo.html')
+    wait.until(EC.presence_of_element_located((By.ID, 'dataTable')))
+    time.sleep(2)
+    driver.save_screenshot(os.path.join(OUTPUT_DIR, '11_todo.png'))
+    print('已保存 11_todo.png')
+
 finally:
     driver.quit()
 

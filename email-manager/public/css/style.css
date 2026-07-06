@@ -603,7 +603,6 @@ th, td {
     text-overflow: ellipsis;
     vertical-align: middle;
     height: 60px;
-    max-height: 60px;
 }
 
 td {
@@ -763,10 +762,9 @@ tr:hover td {
 
 .system-tags {
     display: flex;
-    flex-wrap: nowrap;
+    flex-direction: column;
+    align-items: flex-start;
     gap: 4px;
-    overflow: hidden;
-    align-items: center;
 }
 
 .system-tag {
@@ -776,7 +774,7 @@ tr:hover td {
     color: var(--primary-deep);
     padding: 4px 8px;
     border-radius: var(--radius-full);
-    font-size: 0.65rem;
+    font-size: inherit;
     font-weight: 400;
     border: 1px solid transparent;
     transition: all 0.15s ease;
@@ -786,6 +784,13 @@ tr:hover td {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.tag-line {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    flex-wrap: nowrap;
 }
 
 .system-tag:hover {

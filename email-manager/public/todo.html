@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的待办 - 需求催办系统</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="page-wrapper">
+        <!-- 顶部导航 -->
+        <nav class="top-nav">
+            <div class="nav-content">
+                <div class="nav-brand">
+                    <span class="icon">📧</span>
+                    <span>需求催办系统</span>
+                </div>
+                <div class="nav-links">
+                    <a href="/">需求清单</a>
+                    <a href="/reminder.html">催办提醒</a>
+                    <a href="/todo.html" class="active">我的待办</a>
+                    <a href="/group.html">集团需求</a>
+                    <a href="#" onclick="logout(); return false;" style="color: var(--danger);">退出登录</a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 主内容 -->
+        <main class="main-content">
+            <div class="container narrow">
+                <!-- 消息提示 -->
+                <div class="message" id="message"></div>
+
+                <!-- 页面标题 -->
+                <div class="page-header">
+                    <h1>📝 我的待办</h1>
+                    <div class="summary" id="summary">正在加载数据...</div>
+                </div>
+
+                <!-- 数据表格卡片 -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">待录入开发单号的需求清单</div>
+                        <div class="toolbar">
+                            <button class="btn-gray" onclick="location.href='/'">← 返回首页</button>
+                            <button class="btn-primary" onclick="loadData()">🔄 刷新数据</button>
+                        </div>
+                    </div>
+                    <div class="card-body" style="padding-top: 0;">
+                        <div class="table-container">
+                            <table id="dataTable">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 3%;"></th>
+                                        <th style="width: 9%;">需求ID</th>
+                                        <th style="width: 9%;">提出时间</th>
+                                        <th style="width: 18%;">需求名称</th>
+                                        <th style="width: 7%;">提单人</th>
+                                        <th style="width: 14%;">涉及系统</th>
+                                        <th style="width: 13%;">责任人</th>
+                                        <th style="width: 7%;">工作量(人天)</th>
+                                        <th style="width: 6%; text-align: center;">涉及开发</th>
+                                        <th style="width: 10%;">开发单号</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableBody">
+                                    <tr>
+                                        <td colspan="10" class="loading">正在加载数据...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="pagination-wrapper">
+                            <div class="page-info" id="pageInfo"></div>
+                            <div class="page-nav" id="pageNav"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 需求详情模态框 -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">需求详情</h2>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <script src="/js/todo.js"></script>
+</body>
+</html>

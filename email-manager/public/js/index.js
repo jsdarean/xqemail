@@ -97,10 +97,23 @@ function groupAndRenderData(data) {
         groupedData[reqId].push(row);
     });
     renderGroupedTable();
+    updateSummary();
 }
 
 function getGroupWarning(rows) {
     return rows.some(r => parseFloat(r.workload) === 0 && Number(r.is_involved) === 1);
+}
+
+function updateSummary() {
+    const summary = document.getElementById('summary');
+    if (!summary) return;
+    const reqIds = Object.keys(groupedData);
+    const pendingCount = reqIds.filter(reqId => getGroupWarning(groupedData[reqId])).length;
+    if (pendingCount === 0) {
+        summary.innerHTML = '当前所有需求均已完成工作量初评。';
+    } else {
+        summary.innerHTML = '您当前有 <strong>' + pendingCount + '</strong> 条需求没有完成工作量初评，请到<a href="/reminder.html">“催办提醒”</a>页面完成需求催办，并在此页面录入初评工作量。';
+    }
 }
 
 function renderGroupedTable() {
@@ -118,6 +131,25 @@ function renderGroupedTable() {
         pageInfo.textContent = '';
         pageNav.innerHTML = '';
         return;
+    }
+
+    // 将标签按每行 1 个堆叠，最多 2 行，+N 气泡放在第 2 行尾部
+    function buildStackedTagsHtml(items, renderTag, moreTagHtml) {
+        let html = '';
+        if (items.length > 0) {
+            html += renderTag(items[0]);
+        }
+        if (items.length > 1 || moreTagHtml) {
+            html += '<div class="tag-line">';
+            if (items.length > 1) {
+                html += renderTag(items[1]);
+            }
+            if (moreTagHtml) {
+                html += moreTagHtml;
+            }
+            html += '</div>';
+        }
+        return html;
     }
 
     // 排序
@@ -169,21 +201,22 @@ function renderGroupedTable() {
         // 缓存涉及开发的系统列表，供 +N tooltip 使用
         systemsMap.set(reqId, uniqueSystems);
 
-        // 系统标签：最多显示 2 个，其余折叠到 +N
+        // 系统标签：最多显示 2 个，其余折叠到 +N；每行 1 个，+N 气泡放在第 2 行尾部
         const maxVisible = 2;
         const visibleSystems = uniqueSystems.slice(0, maxVisible);
         const hiddenSystems = uniqueSystems.slice(maxVisible);
 
-        let systemTagsHtml = visibleSystems.map(s => {
+        function renderSystemTag(s) {
             let cls = 'system-tag';
             if (s.warning) cls += ' warning';
             if (s.strikethrough) cls += ' not-involved';
             return `<span class="${cls}">${s.name}</span>`;
-        }).join('');
-
-        if (hiddenSystems.length > 0) {
-            systemTagsHtml += `<span class="system-tag more-tag" onclick="showSystemsTooltip(event, '${reqId.replace(/'/g, "\\'")}')">+${hiddenSystems.length}</span>`;
         }
+
+        const systemMoreTag = hiddenSystems.length > 0
+            ? `<span class="system-tag more-tag" onclick="showSystemsTooltip(event, '${reqId.replace(/'/g, "\\'")}')">+${hiddenSystems.length}</span>`
+            : '';
+        const systemTagsHtml = buildStackedTagsHtml(visibleSystems, renderSystemTag, systemMoreTag);
 
         const hasWarning = uniqueSystems.some(s => s.warning);
 
@@ -201,7 +234,7 @@ function renderGroupedTable() {
         // 缓存涉及开发的责任人列表，供 +N tooltip 使用
         saMap.set(reqId, saInfos);
 
-        // 责任人标签：最多显示 2 个，其余折叠到 +N
+        // 责任人标签：最多显示 2 个，其余折叠到 +N；每行 1 个，+N 气泡放在第 2 行尾部
         const maxSaVisible = 2;
         const visibleSas = saInfos.slice(0, maxSaVisible);
         const hiddenSas = saInfos.slice(maxSaVisible);
@@ -212,10 +245,10 @@ function renderGroupedTable() {
             return `<span class="system-tag ${cls}">${sa.name}${suffix}</span>`;
         }
 
-        let saTagsHtml = visibleSas.map(renderSaTag).join('');
-        if (hiddenSas.length > 0) {
-            saTagsHtml += `<span class="system-tag more-tag" onclick="showSaTooltip(event, '${reqId.replace(/'/g, "\\'")}')">+${hiddenSas.length}</span>`;
-        }
+        const saMoreTag = hiddenSas.length > 0
+            ? `<span class="system-tag more-tag" onclick="showSaTooltip(event, '${reqId.replace(/'/g, "\\'")}')">+${hiddenSas.length}</span>`
+            : '';
+        const saTagsHtml = buildStackedTagsHtml(visibleSas, renderSaTag, saMoreTag);
 
         const totalWorkload = rows.reduce((sum, r) => sum + (parseFloat(r.workload) || 0), 0);
         const anyInvolved = rows.some(r => Number(r.is_involved) === 1);
@@ -567,8 +600,8 @@ function updateGroupRow(id) {
         if (involvedSelect && involvedSelect.value === '1') anyInvolved = true;
     });
 
-    groupRow.cells[6].textContent = totalWorkload > 0 ? totalWorkload.toFixed(1) : '-';
-    groupRow.cells[7].textContent = anyInvolved ? '是' : '否';
+    groupRow.cells[7].textContent = totalWorkload > 0 ? totalWorkload.toFixed(1) : '-';
+    groupRow.cells[8].textContent = anyInvolved ? '是' : '否';
 }
 
 function copyText(text) {

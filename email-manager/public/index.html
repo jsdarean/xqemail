@@ -16,8 +16,9 @@
                     <span>需求催办系统</span>
                 </div>
                 <div class="nav-links">
-                    <a href="/" class="active">需求管理</a>
+                    <a href="/" class="active">需求清单</a>
                     <a href="/reminder.html">催办提醒</a>
+                    <a href="/todo.html">我的待办</a>
                     <a href="/group.html">集团需求</a>
                     <a href="#" onclick="logout(); return false;" style="color: var(--danger);">退出登录</a>
                 </div>
@@ -29,6 +30,12 @@
             <div class="container">
                 <!-- 消息提示 -->
                 <div class="message" id="message"></div>
+
+                <!-- 工作量初评提示卡片 -->
+                <div class="page-header">
+                    <h1>📋 需求清单</h1>
+                    <div class="summary" id="summary">正在加载数据...</div>
+                </div>
 
                 <!-- 数据表格卡片 -->
                 <div class="card">
