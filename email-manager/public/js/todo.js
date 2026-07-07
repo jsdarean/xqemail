@@ -623,6 +623,54 @@ async function saveRow(id) {
     }
 }
 
+// 批量保存当前所有修改
+async function saveAll() {
+    if (modifiedData.size === 0) {
+        showMessage('没有需要保存的修改', 'error');
+        return;
+    }
+
+    const updates = [];
+    for (const [id, modifications] of modifiedData) {
+        const row = document.querySelector('tr.child-row[data-id="' + id + '"]');
+        if (!row) continue;
+        const workloadInput = row.querySelector('input[data-field="workload"]');
+        const involvedSelect = row.querySelector('select[data-field="is_involved"]');
+        const devTicketInput = row.querySelector('input[data-field="dev_ticket_no"]');
+        updates.push({
+            id: id,
+            workload: workloadInput ? workloadInput.value : (modifications.workload ?? ''),
+            is_involved: involvedSelect ? parseInt(involvedSelect.value) : (modifications.is_involved ?? 1),
+            dev_ticket_no: devTicketInput ? devTicketInput.value : (modifications.dev_ticket_no ?? '')
+        });
+    }
+
+    if (updates.length === 0) {
+        showMessage('没有需要保存的修改', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetchWithAuth('/api/emails/batch-update', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updates)
+        });
+        const result = await response.json();
+
+        if (result.success) {
+            showMessage(result.message, 'success');
+            modifiedData.clear();
+            document.querySelectorAll('tr.child-row').forEach(tr => tr.classList.remove('modified'));
+            setTimeout(() => loadData(), 500);
+        } else {
+            showMessage('保存失败: ' + result.error, 'error');
+        }
+    } catch (error) {
+        showMessage('请求失败: ' + error.message, 'error');
+    }
+}
+
 function showMessage(text, type) {
     const messageDiv = document.getElementById('message');
     if (!messageDiv) return;
