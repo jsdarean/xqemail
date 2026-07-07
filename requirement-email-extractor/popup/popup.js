@@ -46,11 +46,13 @@ function smartExtractByLabel(fieldName) {
       `td:contains('${escapedLabel}') ~ td:first`,              // 同 tr 内第一个后续 td
     ];
 
+    const multiline = fieldName === 'description' || fieldName === 'background';
+
     for (const selector of candidates) {
       try {
         const el = document.querySelector(selector);
         if (el) {
-          const text = (el.innerText || el.textContent || '').trim();
+          const text = getValue(el, multiline);
           if (text && text !== label) {
             return text;
           }
@@ -63,14 +65,14 @@ function smartExtractByLabel(fieldName) {
     // 2) 备选：找包含该 label 的最近的 tr，遍历该 tr 内的所有 td，返回第一个非 label 的 td
     try {
       const labelTd = Array.from(document.querySelectorAll('td')).find(
-        td => (td.innerText || td.textContent || '').trim() === label
+        td => (td.textContent || '').trim() === label
       );
       if (labelTd) {
         const tr = labelTd.closest('tr');
         if (tr) {
           const tds = tr.querySelectorAll('td');
           for (const td of tds) {
-            const text = (td.innerText || td.textContent || '').trim();
+            const text = getValue(td, multiline);
             if (text && text !== label) {
               return text;
             }
@@ -221,7 +223,7 @@ function extractFromPage(rules) {
   // ============== 工具函数 ==============
 
   /** 从元素中获取值（支持 input/textarea/select/普通元素）*/
-  function getValue(el) {
+  function getValue(el, multiline) {
     if (!el) return '';
     const tag = el.tagName ? el.tagName.toLowerCase() : '';
     if (tag === 'input') {
@@ -237,8 +239,17 @@ function extractFromPage(rules) {
       }
       return el.value || '';
     }
-    // 普通元素优先使用 innerText，保留 <br>、<p> 等带来的换行；不可见时回退到 textContent
-    return (el.innerText || el.textContent || '').trim();
+    // 普通元素：默认使用 textContent，避免 innerText 因可见性/结构差异导致标签匹配或取值错误
+    // multiline=true 时优先使用 innerText，保留 <br>/<p> 等带来的视觉换行
+    if (multiline) {
+      return (el.innerText || el.textContent || '').trim();
+    }
+    return (el.textContent || '').trim();
+  }
+
+  /** 判断字段是否需要保留多行换行 */
+  function isMultilineField(field) {
+    return field === 'description' || field === 'background';
   }
 
   /** 验证提取的值是否合理（过滤垃圾值） */
@@ -272,8 +283,9 @@ function extractFromPage(rules) {
 
   /** 多个元素取第一个有有效值的 */
   function getFirstValidValue(els, field) {
+    const multiline = isMultilineField(field);
     for (const el of els) {
-      const v = getValue(el);
+      const v = getValue(el, multiline);
       if (isValidValue(v, field)) return v;
     }
     return '';
@@ -288,9 +300,9 @@ function extractFromPage(rules) {
       .trim();
   }
 
-  /** 判断元素文本是否匹配关键词（支持 *需求编号 等前缀，忽略空白） */
+  /** 判断元素文本是否匹配关键词（支持 *需求编号 等前缀） */
   function matchKeyword(elText, keyword) {
-    const t = elText.replace(/^[\*\•\●\#\s]+/, '').replace(/\s/g, ''); // 去掉前导符号及所有空白
+    const t = elText.replace(/^[\*\•\●\#\s]+/, ''); // 去掉前导 *,•,●,# 及空白
     return t.includes(keyword);
   }
 
@@ -330,7 +342,7 @@ function extractFromPage(rules) {
     for (const sel of selectors) {
       try {
         const el = document.querySelector(sel);
-        let v = clean(getValue(el));
+        let v = clean(getValue(el, isMultilineField(field)));
         // 若匹配到空 textarea，尝试解析其 hidden input 真实值
         if (el && el.tagName && el.tagName.toLowerCase() === 'textarea' && (!v || v === '*')) {
           v = clean(resolveTextareaValue(el));
@@ -353,13 +365,13 @@ function extractFromPage(rules) {
         const forId = label.getAttribute('for');
         if (forId) {
           const target = document.getElementById(forId);
-          const v = clean(getValue(target));
+          const v = clean(getValue(target, isMultilineField(field)));
           if (isValidValue(v, field)) return v;
         }
         // label 包裹 input
         const nestedInput = label.querySelector('input:not([type="checkbox"]):not([type="radio"])');
         if (nestedInput) {
-          const v = clean(getValue(nestedInput));
+          const v = clean(getValue(nestedInput, isMultilineField(field)));
           if (isValidValue(v, field)) return v;
         }
       }
@@ -382,7 +394,7 @@ function extractFromPage(rules) {
             const container = cells[j];
             const valEl = container.querySelector('input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"])') ||
                           container.querySelector('textarea, select') || container;
-            let v = clean(getValue(valEl));
+            let v = clean(getValue(valEl, isMultilineField(field)));
             // 若 textarea 为空，尝试从 hidden input 读取真实值
             if (valEl && valEl.tagName && valEl.tagName.toLowerCase() === 'textarea' && (!v || v === '*')) {
               v = clean(resolveTextareaValue(valEl));
@@ -390,7 +402,7 @@ function extractFromPage(rules) {
             if (isValidValue(v, field)) return v;
             // fallback：form 元素没有值时，直接取单元格可见文本
             if (!v) {
-              const textV = clean(container.textContent);
+              const textV = clean(getValue(container, isMultilineField(field)));
               if (isValidValue(textV, field)) return textV;
             }
             // 如果这个 cell 也包含类似标签的文字，不要继续找
@@ -434,7 +446,7 @@ function extractFromPage(rules) {
         // 如果 sibling 是纯文本容器（span/div/p）
         const tag = sibling.tagName ? sibling.tagName.toLowerCase() : '';
         if (['span', 'div', 'p', 'td', 'dd'].includes(tag)) {
-          const textV = clean(sibling.textContent);
+          const textV = clean(getValue(sibling, isMultilineField(field)));
           if (isValidValue(textV, field) && textV.length < 2000) {
             // 确认这不像标签
             let looksLikeValue = true;
@@ -457,7 +469,7 @@ function extractFromPage(rules) {
           ], field);
           if (v) return v;
           // 纯文本
-          const textV = clean(parentSibling.textContent);
+          const textV = clean(getValue(parentSibling, isMultilineField(field)));
           if (isValidValue(textV, field) && textV.length < 2000) {
             let looksLikeValue = true;
             for (const kw of kws) {
@@ -502,7 +514,7 @@ function extractFromPage(rules) {
             }
             const valEl = nextEl.querySelector('input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"])') || 
                           nextEl.querySelector('textarea, select') || nextEl;
-            let v = clean(getValue(valEl));
+            let v = clean(getValue(valEl, isMultilineField(field)));
             // 若 textarea 为空，尝试从 hidden input 读取真实值
             if (valEl && valEl.tagName && valEl.tagName.toLowerCase() === 'textarea' && (!v || v === '*')) {
               v = clean(resolveTextareaValue(valEl));
@@ -510,7 +522,7 @@ function extractFromPage(rules) {
             if (isValidValue(v, field)) return v;
             // fallback：form 元素没有值时，直接取容器可见文本
             if (!v) {
-              const textV = clean(nextEl.textContent);
+              const textV = clean(getValue(nextEl, isMultilineField(field)));
               if (isValidValue(textV, field)) return textV;
             }
           }
@@ -574,7 +586,7 @@ function extractFromPage(rules) {
         const inputEl = valTd.querySelector('input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"])') ||
                         valTd.querySelector('textarea, select');
         if (inputEl) {
-          let v = clean(getValue(inputEl));
+          let v = clean(getValue(inputEl, isMultilineField(field)));
           // 若 textarea 为空，尝试从 hidden input 读取真实值
           if (inputEl.tagName && inputEl.tagName.toLowerCase() === 'textarea' && (!v || v === '*')) {
             v = clean(resolveTextareaValue(inputEl));
@@ -585,12 +597,12 @@ function extractFromPage(rules) {
         // 2) 看 tinymce / contenteditable 富文本（工单内容常出现）
         const editable = valTd.querySelector('.mce-content-body, [contenteditable="true"]');
         if (editable) {
-          const v = clean(editable.innerText || editable.textContent);
+          const v = clean(getValue(editable, isMultilineField(field)));
           if (isValidValue(v, field) && v.length > 5) return v;
         }
 
         // 3) 普通文本（需要非空、非纯标签）
-        const v = clean(valTd.textContent);
+        const v = clean(getValue(valTd, isMultilineField(field)));
         if (v && v !== matchedKw && isValidValue(v, field) && v.length > 0) {
           // 如果文本太短（< 5）但不像标签，就接受
           if (v.length < 5) {
@@ -635,7 +647,7 @@ function extractFromPage(rules) {
               // 优先 contenteditable 富文本
               const editable = nextTrVal.querySelector('.mce-content-body, [contenteditable="true"]');
               if (editable) {
-                const v = clean(editable.innerText || editable.textContent);
+                const v = clean(getValue(editable, isMultilineField(field)));
                 if (isValidValue(v, field) && v.length > 5) return v;
               }
               // 再看 textarea 及其 hidden input 真实值
@@ -644,7 +656,7 @@ function extractFromPage(rules) {
                 const v = clean(resolveTextareaValue(ta));
                 if (isValidValue(v, field) && v.length > 5) return v;
               }
-              const v = clean(nextTrVal.textContent);
+              const v = clean(getValue(nextTrVal, isMultilineField(field)));
               if (isValidValue(v, field) && v.length > 5) return v;
             }
           }
