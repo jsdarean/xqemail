@@ -237,7 +237,8 @@ function extractFromPage(rules) {
       }
       return el.value || '';
     }
-    return (el.textContent || '').trim();
+    // 普通元素优先使用 innerText，保留 <br>、<p> 等带来的换行；不可见时回退到 textContent
+    return (el.innerText || el.textContent || '').trim();
   }
 
   /** 验证提取的值是否合理（过滤垃圾值） */
@@ -278,14 +279,18 @@ function extractFromPage(rules) {
     return '';
   }
 
-  /** 清理文本 */
+  /** 清理文本：保留换行，仅折叠空格/制表符/不间断空格 */
   function clean(text) {
-    return (text || '').replace(/[\s\u00a0\u3000]+/g, ' ').trim();
+    return (text || '')
+      .replace(/\r\n/g, '\n')
+      .replace(/[ \t\u00a0\u3000]+/g, ' ')
+      .replace(/\n+/g, '\n')
+      .trim();
   }
 
-  /** 判断元素文本是否匹配关键词（支持 *需求编号 等前缀） */
+  /** 判断元素文本是否匹配关键词（支持 *需求编号 等前缀，忽略空白） */
   function matchKeyword(elText, keyword) {
-    const t = elText.replace(/^[\*\•\●\#\s]+/, ''); // 去掉前导 *,•,●,#
+    const t = elText.replace(/^[\*\•\●\#\s]+/, '').replace(/\s/g, ''); // 去掉前导符号及所有空白
     return t.includes(keyword);
   }
 
@@ -580,7 +585,7 @@ function extractFromPage(rules) {
         // 2) 看 tinymce / contenteditable 富文本（工单内容常出现）
         const editable = valTd.querySelector('.mce-content-body, [contenteditable="true"]');
         if (editable) {
-          const v = clean(editable.textContent || editable.innerText);
+          const v = clean(editable.innerText || editable.textContent);
           if (isValidValue(v, field) && v.length > 5) return v;
         }
 
@@ -630,7 +635,7 @@ function extractFromPage(rules) {
               // 优先 contenteditable 富文本
               const editable = nextTrVal.querySelector('.mce-content-body, [contenteditable="true"]');
               if (editable) {
-                const v = clean(editable.textContent || editable.innerText);
+                const v = clean(editable.innerText || editable.textContent);
                 if (isValidValue(v, field) && v.length > 5) return v;
               }
               // 再看 textarea 及其 hidden input 真实值

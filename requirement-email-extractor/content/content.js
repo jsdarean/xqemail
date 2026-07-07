@@ -44,11 +44,16 @@ function extractInfo(rules) {
       }
       return el.value || '';
     }
-    return (el.textContent || '').replace(/[\s\u00a0\u3000]+/g, ' ').trim();
+    // 普通元素优先使用 innerText，保留 <br>、<p> 等带来的换行；不可见时回退到 textContent
+    return (el.innerText || el.textContent || '').trim();
   }
 
   function clean(text) {
-    return (text || '').replace(/[\s\u00a0\u3000]+/g, ' ').trim();
+    return (text || '')
+      .replace(/\r\n/g, '\n')
+      .replace(/[ \t\u00a0\u3000]+/g, ' ')
+      .replace(/\n+/g, '\n')
+      .trim();
   }
 
   function isPureSymbol(text) {
@@ -56,7 +61,8 @@ function extractInfo(rules) {
   }
 
   function matchKeyword(elText, keyword) {
-    return elText.replace(/^[\*\•\●\#\s]+/, '').includes(keyword);
+    const t = elText.replace(/^[\*\•\●\#\s]+/, '').replace(/\s/g, ''); // 去掉前导符号及所有空白
+    return t.includes(keyword);
   }
 
   /**
