@@ -267,8 +267,12 @@ function extractFromPage(rules) {
     if ((field === 'reqId' || field === 'reqName') && v.length <= 2) return false;
     // 值不应该看起来像标签名（避免匹配到了另一个字段的标签）
     // description / background 本身就可能以这些词开头，跳过该检查
+    // 1) 精确匹配常见标签关键词（允许后面跟冒号/空格）
+    const exactLabels = /^(需求编号|需求ID|需求单号|需求号|工单编号|工单ID|运营工单ID|编号|ID|需求名称|需求标题|需求主题|需求名|工单标题|提出人|创建人|申请人|提交人|创建者|作者|工单发布人|发布人|提出时间|创建时间|提交时间|发布时间|工单创建时间|创建日期|需求背景及目标|需求背景|项目背景|业务背景|背景|需求描述|详细描述|功能描述|描述|详细|工单内容)[：:\s]*$/;
+    if (field !== 'description' && field !== 'background' && exactLabels.test(v)) return false;
+    // 2) 通用标签前缀匹配（仅对短文本生效，避免误伤以“取消/新增/确认”等开头的需求名称）
     const labelLike = /^(需求|工单|关联|联系|处理|审批|状态|类型|优先级|创建|修改|申请|提交|指派|所属|归属|来源|影响|操作|管理|维护|查看|编辑|删除|新增|确认|取消|详情|附件|备注|意见|说明|描述|内容|标题|名称|编号|ID|状态)/;
-    if (field !== 'description' && field !== 'background' && labelLike.test(v)) return false;
+    if (field !== 'description' && field !== 'background' && v.length <= 8 && labelLike.test(v)) return false;
     // 字段特定的严格过滤
     if (field === 'proposer') {
       // 提出人/发布人/创建人：应该是 2-4 个汉字的人名，或"姓名+工号"格式
