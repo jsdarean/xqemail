@@ -290,6 +290,7 @@ body {
   color: #333;
   margin-top: 2px;
   word-break: break-word;
+  white-space: pre-wrap;
   min-height: 18px;
 }
 
