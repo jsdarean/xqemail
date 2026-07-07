@@ -240,11 +240,25 @@ function extractFromPage(rules) {
       return el.value || '';
     }
     // 普通元素：默认使用 textContent，避免 innerText 因可见性/结构差异导致标签匹配或取值错误
-    // multiline=true 时优先使用 innerText，保留 <br>/<p> 等带来的视觉换行
+    // multiline=true 时将 <br>/<p> 等转换为换行，保留段落结构
     if (multiline) {
-      return (el.innerText || el.textContent || '').trim();
+      return getMultilineText(el);
     }
     return (el.textContent || '').trim();
+  }
+
+  /** 提取多行文本：将 <br> 及块级元素转换为换行符 */
+  function getMultilineText(el) {
+    if (!el) return '';
+    const clone = el.cloneNode(true);
+    clone.querySelectorAll('br').forEach(br => br.replaceWith(document.createTextNode('\n')));
+    const blockTags = ['p', 'div', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'blockquote'];
+    clone.querySelectorAll(blockTags.join(',')).forEach(block => {
+      block.appendChild(document.createTextNode('\n'));
+    });
+    let text = clone.textContent || '';
+    // 清理多余空行，但保留有意义的换行
+    return text.replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
   }
 
   /** 判断字段是否需要保留多行换行 */
