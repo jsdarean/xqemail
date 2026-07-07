@@ -29,6 +29,27 @@ async function logout() {
     window.location.href = '/login.html';
 }
 
+// 更新顶部“我的待办”徽标数字
+async function updateTodoBadge() {
+    try {
+        const res = await fetchWithAuth('/api/emails/todo-count');
+        const result = await res.json();
+        if (result.success) {
+            const badge = document.getElementById('todoBadge');
+            if (badge) {
+                if (result.count > 0) {
+                    badge.textContent = result.count > 99 ? '99+' : result.count;
+                    badge.style.display = 'inline-flex';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+        }
+    } catch (e) {
+        console.error('更新待办徽标失败:', e);
+    }
+}
+
 function fmtDate(d) {
     if (!d) return '-';
     return String(d).split('T')[0].substring(0, 10);
@@ -249,4 +270,5 @@ function showToast(msg) {
 
 window.onload = function() {
     loadData();
+    updateTodoBadge();
 };

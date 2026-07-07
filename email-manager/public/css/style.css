@@ -182,6 +182,24 @@ body {
     box-shadow: var(--shadow-xs);
 }
 
+/* 导航徽标：我的待办数量 */
+.nav-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    margin-left: 6px;
+    background: var(--danger);
+    color: var(--on-primary);
+    font-size: 0.7rem;
+    font-weight: 500;
+    border-radius: var(--radius-full);
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+    vertical-align: middle;
+}
+
 /* 主内容区 */
 .main-content {
     flex: 1;

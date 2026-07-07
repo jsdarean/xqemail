@@ -109,4 +109,26 @@ router.get('/todo', async (req, res) => {
     }
 });
 
+// 我的待办数量：返回待录入开发单号的需求个数（按 req_id 去重）
+router.get('/todo-count', async (req, res) => {
+    try {
+        const [rows] = await pool.execute(
+            `SELECT COUNT(DISTINCT req_id) AS count
+             FROM sent_emails
+             WHERE req_id IN (
+                 SELECT req_id
+                 FROM sent_emails
+                 GROUP BY req_id
+                 HAVING SUM(CASE WHEN COALESCE(is_involved, 1) = 1 THEN 1 ELSE 0 END) > 0
+                    AND SUM(CASE WHEN COALESCE(is_involved, 1) = 1 AND (workload IS NULL OR workload = 0) THEN 1 ELSE 0 END) = 0
+                    AND SUM(CASE WHEN COALESCE(is_involved, 1) = 1 AND (dev_ticket_no IS NULL OR dev_ticket_no = '') THEN 1 ELSE 0 END) > 0
+             )`
+        );
+        res.json({ success: true, count: rows[0]?.count || 0 });
+    } catch (error) {
+        console.error('查询我的待办数量错误:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 module.exports = router;
