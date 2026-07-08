@@ -182,15 +182,28 @@ async function extractInfo() {
 
     const rules = await getRules();
 
-    // 注入并执行提取脚本
+    // 注入并执行提取脚本（包含 iframe，适配需小依等微前端场景）
     const results = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
+      target: { tabId: tab.id, allFrames: true },
       func: extractFromPage,
       args: [rules]
     });
 
-    if (results && results[0]?.result) {
-      await displayResults(results[0].result);
+    // 合并所有 iframe / frame 的提取结果，优先取字段最多的结果
+    let bestResult = null;
+    let bestScore = -1;
+    for (const r of results || []) {
+      const data = r?.result;
+      if (!data) continue;
+      const score = Object.values(data).filter(v => v && String(v).trim()).length;
+      if (score > bestScore) {
+        bestScore = score;
+        bestResult = data;
+      }
+    }
+
+    if (bestResult) {
+      await displayResults(bestResult);
     } else {
       showToast('未能提取到信息，请检查页面内容或调整提取规则', 'error');
     }
@@ -572,7 +585,45 @@ function extractFromPage(rules) {
     return '';
   }
 
-  // ============== 策略 7: 工单系统专用（label+value 都是 td 的场景）==============
+  // ============== 策略 7: Element Plus 表单（需小依等）==============
+  // 适配 .el-form-item__label + .el-form-item__content 布局，且内容常位于 iframe 中
+  function tryElementPlusForm(field) {
+    const kws = FIELD_KEYWORDS[field] || [];
+    const labels = document.querySelectorAll('.el-form-item__label');
+    for (const label of labels) {
+      const labelText = clean(label.textContent);
+      if (labelText.length > 30) continue;
+      let matchedKw = null;
+      for (const kw of kws) {
+        if (matchKeyword(labelText, kw)) {
+          matchedKw = kw;
+          break;
+        }
+      }
+      if (!matchedKw) continue;
+
+      // 优先取 label 的下一个兄弟 .el-form-item__content
+      let content = null;
+      if (label.nextElementSibling && label.nextElementSibling.classList.contains('el-form-item__content')) {
+        content = label.nextElementSibling;
+      } else {
+        // 从父元素中查找 content
+        const parent = label.parentElement;
+        if (parent) {
+          content = parent.querySelector('.el-form-item__content');
+        }
+      }
+      if (!content) continue;
+
+      const v = clean(getValue(content, isMultilineField(field)));
+      if (v && v !== matchedKw && isValidValue(v, field) && v.length > 0) {
+        return v;
+      }
+    }
+    return '';
+  }
+
+  // ============== 策略 8: 工单系统专用（label+value 都是 td 的场景）==============
   // 适配 jlwzng 运营工单页面：label 和 value 都在同一个 tr 内，
   // label td 的文本恰好等于关键词，下一个 td 是 value
   function tryWorkorderTable(field) {
@@ -696,7 +747,8 @@ function extractFromPage(rules) {
       () => tryCSSSelector(selectorList, field),
       () => tryLabelFor(field),
       () => tryTableRow(field),
-      () => tryWorkorderTable(field),   // 工单系统专用（jlwzng 等）
+      () => tryElementPlusForm(field),   // Element Plus 表单（需小依等）
+      () => tryWorkorderTable(field),    // 工单系统专用（jlwzng 等）
       () => tryAdjacentElement(field),
       () => tryClassContainers(field),
       () => tryTextareaContent(field)
