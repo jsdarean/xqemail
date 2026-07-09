@@ -9,7 +9,7 @@
 
 // ==================== 安装与初始化 ====================
 chrome.runtime.onInstalled.addListener((details) => {
-  console.log('需求提取kimi版（本机版V2.1）扩展已安装/更新:', details.reason);
+  console.log('需求提取插件V2.1（适配需小依、运营工单）扩展已安装/更新:', details.reason);
 
   // 首次安装时初始化默认设置
   if (details.reason === 'install') {

@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "需求提取kimi版（本机版V2.1）",
+  "name": "需求提取插件V2.1（适配需小依、运营工单）",
   "version": "2.1.0",
   "description": "自动提取页面需求信息并支持一键发送邮件给指定收件人，同时通过http://localhost:3000页面可以完成后续需求催办。（注意需要在本机双击start-server.bat启动服务器并保持服务器驻留）",
   "author": "WorkBuddy",
@@ -15,7 +15,7 @@
   ],
   "action": {
     "default_popup": "popup/popup.html",
-    "default_title": "需求提取kimi版（本机版V2.1）",
+    "default_title": "需求提取插件V2.1（适配需小依、运营工单）",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
