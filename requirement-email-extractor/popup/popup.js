@@ -126,7 +126,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   initTabs();
   await loadCurrentPageInfo();
   await loadContacts();
-  await loadRules();
   await loadSmtpConfig();
   await loadDbConfig();
   bindEvents();
@@ -1746,10 +1745,12 @@ function exportContactsToExcel() {
   showToast(`✅ 已导出 ${contacts.length} 个联系人`, 'success');
 }
 
-// ==================== 提取规则管理 ====================
+// ==================== 提取规则管理（UI 已隐藏，保留存储读取供内部使用）====================
 async function loadRules() {
   const { rules = DEFAULT_RULES } = await chrome.storage.local.get('rules');
-  document.getElementById('rule-req-id').value = rules.reqId || '';
+  const reqIdEl = document.getElementById('rule-req-id');
+  if (!reqIdEl) return; // 规则页面已隐藏
+  reqIdEl.value = rules.reqId || '';
   document.getElementById('rule-req-name').value = rules.reqName || '';
   document.getElementById('rule-proposer').value = rules.proposer || '';
   document.getElementById('rule-background').value = rules.background || '';
@@ -2071,8 +2072,10 @@ async function getRules() {
 }
 
 async function saveRules() {
+  const reqIdEl = document.getElementById('rule-req-id');
+  if (!reqIdEl) return; // 规则页面已隐藏
   const rules = {
-    reqId: document.getElementById('rule-req-id').value.trim(),
+    reqId: reqIdEl.value.trim(),
     reqName: document.getElementById('rule-req-name').value.trim(),
     proposer: document.getElementById('rule-proposer').value.trim(),
     background: document.getElementById('rule-background').value.trim(),
@@ -2173,20 +2176,6 @@ function bindEvents() {
       showToast(`✅ 已刷新收件人（来源：${src}）`, 'success');
     });
   }
-
-  // 保存规则
-  document.getElementById('btn-save-rules').addEventListener('click', saveRules);
-
-  // 恢复默认规则
-  document.getElementById('btn-reset-rules').addEventListener('click', async () => {
-    if (!confirm('确定要恢复默认提取规则吗？')) return;
-    await chrome.storage.local.set({ rules: DEFAULT_RULES });
-    await loadRules();
-    showToast('已恢复默认规则', 'success');
-  });
-
-  // ========== 点选模式 ==========
-  initPickMode();
 
   // ========== 邮箱设置 ==========
   document.getElementById('btn-save-smtp').addEventListener('click', saveSmtpConfig);

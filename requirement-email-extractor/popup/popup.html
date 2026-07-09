@@ -17,7 +17,6 @@
     <nav class="tabs">
       <button class="tab active" data-tab="extract">📥 提取信息</button>
       <button class="tab" data-tab="contacts">👥 收件人管理</button>
-      <button class="tab" data-tab="settings">⚙️ 提取规则</button>
       <button class="tab" data-tab="email-settings">📧 邮箱设置</button>
     </nav>
 
@@ -34,28 +33,9 @@
 
       <!-- 提取按钮 -->
       <div class="btn-row" style="margin-bottom: 8px;">
-        <button class="btn btn-primary btn-block" id="btn-extract" style="flex: 3;">
+        <button class="btn btn-primary btn-block" id="btn-extract">
           🔍 提取需求信息
         </button>
-        <button class="btn btn-secondary" id="btn-pick-mode" style="flex: 1;" title="点击页面元素指定字段值">
-          🎯 点选
-        </button>
-      </div>
-
-      <!-- 点选模式提示 -->
-      <div class="card pick-hint" id="pick-hint" style="display:none;">
-        <div class="card-header">
-          <span>🎯 点选模式</span>
-          <button class="btn btn-sm btn-danger" id="btn-cancel-pick">取消</button>
-        </div>
-        <p class="hint" id="pick-target-label">请在页面上点击「<b>需求编号</b>」对应的值</p>
-        <div class="pick-fields">
-          <button class="pick-field-btn active" data-field="reqId">1.需求编号</button>
-          <button class="pick-field-btn" data-field="reqName">2.需求名称</button>
-          <button class="pick-field-btn" data-field="proposer">3.提出人</button>
-          <button class="pick-field-btn" data-field="background">4.背景及目标</button>
-          <button class="pick-field-btn" data-field="description">5.需求描述</button>
-        </div>
       </div>
 
       <!-- 提取结果 -->
@@ -216,47 +196,8 @@
       </div>
     </section>
 
-    <!-- ==================== Tab 3: 提取规则 ==================== -->
-    <section class="tab-content" id="tab-settings">
-      <div class="card">
-        <div class="card-header">
-          <span>🔧 提取规则配置</span>
-          <button class="btn btn-sm btn-secondary" id="btn-reset-rules">恢复默认</button>
-        </div>
-        <p class="hint">配置每个字段的 CSS 选择器，用于从页面中提取信息</p>
-
-        <div class="form-group">
-          <label>需求编号 <span class="label-tip">(CSS选择器，也匹配「运营工单ID」)</span></label>
-          <input type="text" class="input" id="rule-req-id" placeholder="例如: .req-id, #requirementId, [data-field='id'], .order-id, td:contains('运营工单ID') + td">
-        </div>
-        <div class="form-group">
-          <label>需求名称 <span class="label-tip">(CSS选择器，也匹配「工单标题」)</span></label>
-          <input type="text" class="input" id="rule-req-name" placeholder="例如: .req-name, h2.title, .workorder-title, td:contains('工单标题') + td">
-        </div>
-        <div class="form-group">
-          <label>提出人 <span class="label-tip">(CSS选择器，也匹配「发布人」)</span></label>
-          <input type="text" class="input" id="rule-proposer" placeholder="例如: .proposer, .publisher, td:contains('发布人') + td">
-        </div>
-        <div class="form-group">
-          <label>需求背景及目标 <span class="label-tip">(CSS选择器)</span></label>
-          <input type="text" class="input" id="rule-background" placeholder="例如: .background, #reqBg">
-        </div>
-        <div class="form-group">
-          <label>需求描述 <span class="label-tip">(CSS选择器，也匹配「工单内容」)</span></label>
-          <input type="text" class="input" id="rule-description" placeholder="例如: .description, #reqDesc, .detail-content, .workorder-content, td:contains('工单内容') + td">
-        </div>
-
-        <div class="form-group">
-          <label>页面匹配规则（URL 正则，每行一个）</label>
-          <textarea class="input textarea" id="rule-url-patterns" rows="3" placeholder="例如:&#10;.*tapd\\.cn.*&#10;.*jira\\.com.*&#10;.*project.*requirement.*"></textarea>
-        </div>
-
-        <button class="btn btn-primary btn-block" id="btn-save-rules">💾 保存规则</button>
-      </div>
-    </section>
-
-    <!-- ==================== Tab 4: 邮箱设置 ==================== -->
-    <section class="tab-content" id="tab-email-settings">
+        <!-- ==================== Tab 3: 邮箱设置 ==================== -->
+<section class="tab-content" id="tab-email-settings">
       <!-- 本地服务器状态 -->
       <div class="card">
         <div class="card-header">
